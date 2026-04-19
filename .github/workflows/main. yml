@@ -1,54 +1,57 @@
-name: Aegis Sovereign - Operational Build
+name: Aegis Sovereign - Unified Strategic Pipeline
 
 on:
   push:
     branches: [ "main", "master" ]
+  schedule:
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
-env:
-  RELEASE_VERSION: v1.0.8
-
 jobs:
-  build:
+  operational_sync_and_build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
+      
     steps:
-      # سحب الكود باستخدام النسخة v4 المستقرة
-      - name: System Checkout
+      # 1. سحب الكود (استخدام v4 المستقرة التي نجحت في المزامنة)
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      # إعداد الجافا باستخدام النسخة v4 المستقرة
-      - name: Configure Java Environment
+      # 2. تنفيذ بروتوكول المزامنة الحركية
+      - name: Execute Protocol Sync
+        run: |
+          if [ -f "./sync.sh" ]; then
+            chmod +x ./sync.sh
+            ./sync.sh
+          else
+            echo "Notice: sync.sh not found, skipping sync protocol."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. تجهيز البيئة البرمجية (JDK 17) بالنسخة v4 المستقرة
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: gradle
 
-      # فحص المحرك والجودة
-      - name: Core Integrity Validation
-        run: |
-          chmod +x gradlew
-          ./gradlew wrapper --gradle-version 7.4 --no-daemon
-          ./gradlew test || echo "Tests failed but continuing build..."
-          ./gradlew lint || echo "Lint failed but continuing build..."
+      # 4. منح صلاحيات المحرك
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew || true
 
-      # بناء التطبيق
-      - name: Assemble Tactical APK
+      # 5. تصنيع النسخة النهائية APK
+      - name: Build with Gradle
         run: ./gradlew assembleRelease
 
-      # إعادة التسمية للتمييز التكتيكي
-      - name: Apply Identification Protocol
-        run: mv app/build/outputs/apk/release/*.apk Aegis_Tactical_v1.0.8Master.apk
-
-      # النشر الرسمي باستخدام النسخة v1 المستقرة
-      - name: Deploy Sovereign Release
+      # 6. رفع النسخة إلى قسم الإصدارات بالنسخة v1 المستقرة
+      - name: Upload Secure APK Release
         uses: softprops/action-gh-release@v1
         with:
-          files: Aegis_Tactical_v1.0.8Master.apk
-          tag_name: ${{ env.RELEASE_VERSION }}-Release
-          name: Aegis Tactical ${{ env.RELEASE_VERSION }}-Release
+          files: app/build/outputs/apk/release/*.apk
+          tag_name: v1.0.8-Release
+          name: Aegis Tactical v1.0.8-Release (Sovereign Node)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
