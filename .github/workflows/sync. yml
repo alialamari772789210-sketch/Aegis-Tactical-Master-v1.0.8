@@ -1,1 +1,0 @@
-yaml name: Kinetic Intelligence Sync on: workflow_dispatch: schedule: - cron: '0 */6 * * *' jobs: interface_sync: runs-on: ubuntu-latest steps: - name: Initialize Architectural Core uses: actions/checkout@v4 - name: Execute Protocol run: | chmod +x sync.sh ./sync.sh env: GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN
