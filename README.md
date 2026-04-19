@@ -24,7 +24,7 @@
 ---
 
 ### 📥 Download Resources:
-* [🚀 Download Aegis_Tactical_v1.0.8.M.apk](#)
+* [🚀 Download Aegis_Tactical_v1.0.8M.apk](#)
 * [📦 Source Code (zip)](https://github.com/alialamari772789210-sketch/Aegis-Tactical-Master-v1.0.8/archive/refs/heads/master.zip)
 
 ---
