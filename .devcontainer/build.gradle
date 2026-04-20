@@ -1,0 +1,13 @@
+dependencies {
+    // المكتبات الأساسية (لا تحذفها)
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    // --- إضافات منظومة Aegis السيادية ---
+    
+    // مكتبة TensorFlow Lite للمعالجة العصبية وحل شفرات الإشارات محلياً
+    implementation 'org.tensorflow:tensorflow-lite:2.12.0'
+    
+    // أي مكتبات أخرى كانت موجودة لـ WebView أو Kotlin أتركها كما هي
+}
