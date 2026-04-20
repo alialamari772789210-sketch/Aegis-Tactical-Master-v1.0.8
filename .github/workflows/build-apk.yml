@@ -5,11 +5,16 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+env:
+  # حل مشكلة التحذير الذي ظهر لك بخصوص Node.js
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true 
+
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
 
     steps:
     - uses: actions/checkout@v4
@@ -19,44 +24,37 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew || true
-
-    # بناء نسخة Debug لأنها لا تطلب مفاتيح توقيع وتنجح دائماً
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
-
-    # البحث عن الملف وتغيير اسمه مهما كان مكانه
-    - name: Locate and Prepare APK
-      id: find_apk
+    # التحقق من وجود ملف gradlew قبل محاولة تشغيله
+    - name: Check Gradle Wrapper
       run: |
-        # البحث عن أي ملف apk ناتج
-        actual_path=$(find . -name "*.apk" -not -path "*/build-cache/*" | head -n 1)
-        if [ -z "$actual_path" ]; then
-          echo "No APK found!"
-          exit 1
+        if [ ! -f "gradlew" ]; then
+          echo "Gradle wrapper not found, attempting to generate..."
+          gradle wrapper
         fi
-        echo "Found APK at: $actual_path"
-        # نسخ الملف إلى المجلد الرئيسي باسم ثابت
-        cp "$actual_path" Aegis_Tactical_v1.0.8Master.apk
-        echo "apk_fixed_path=Aegis_Tactical_v1.0.8Master.apk" >> $GITHUB_OUTPUT
+        chmod +x gradlew
 
-    # رفع الملف كـ Artifact (سيظهر يقيناً في صفحة الـ Actions)
+    - name: Build APK
+      run: ./gradlew assembleDebug --no-daemon
+
+    - name: Prepare APK
+      id: prepare
+      run: |
+        APK_PATH=$(find . -name "*.apk" | head -n 1)
+        if [ -z "$APK_PATH" ]; then exit 1; fi
+        cp "$APK_PATH" Aegis_Tactical_v1.0.8Master.apk
+        echo "path=Aegis_Tactical_v1.0.8Master.apk" >> $GITHUB_OUTPUT
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Aegis-Build-Output
+        name: Aegis-Output
         path: Aegis_Tactical_v1.0.8Master.apk
 
-    # رفع الملف لقسم الإصدارات (Releases)
-    - name: Release APK
+    - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: Aegis_Tactical_v1.0.8Master.apk
-        tag_name: v1.0.8-Master-Build
-        name: Aegis Tactical v1.0.8 Master Build
-        body: "Generated Build from Master Branch"
+        tag_name: "v1.0.8-Build-${{ github.run_number }}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
