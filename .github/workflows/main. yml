@@ -27,38 +27,53 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew || true
 
-      # بناء التطبيق
+      # 1. بناء التطبيق (سيستغرق وقتاً لأنه سيبحث عن كافة المكتبات)
       - name: Build APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
 
-      # تحديد مسار الملف بدقة
+      # 2. تحديد مسار الملف بدقة (رادار البحث الشامل)
       - name: Locate APK
         id: locate_apk
         run: |
-          APK_PATH=$(find . -name "*.apk" -not -path "*/build-cache/*" | head -n 1)
-          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
-          echo "Found: $APK_PATH"
+          # البحث عن أي ملف APK ناتج عن عملية البناء
+          APK_FILE=$(find . -name "*.apk" -not -path "*/build-cache/*" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: APK not found!"
+            exit 1
+          fi
+          echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
+          echo "apk_name=$(basename $APK_FILE)" >> $GITHUB_OUTPUT
 
-      # رفع الملف لقسم الإصدارات (باسم ثابت ليعمل الرابط)
+      # 3. حفظ الملف في "القطع الأثرية" (Artifacts) لكي يظهر في الصفحة التي صورتها
+      - name: Save to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aegis_Tactical_v1.0.8M_Internal
+          path: ${{ steps.locate_apk.outputs.apk_path }}
+
+      # 4. رفع الملف لقسم الإصدارات (Releases) لإنشاء الرابط الدائم
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ steps.locate_apk.outputs.apk_path }}
-          tag_name: v1.0.8-Master
+          tag_name: v1.0.8-Release
           name: Aegis Tactical v1.0.8 "Voice Master"
-          body: "Auto-build for version 1.0.8-Master"
+          body: "Verification Hash: c892e8a1-ff82-416b-a23d-004a4b4f5353"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # --- الخطوة الجديدة: ربط الرابط في الصفحة الرئيسية بالملف المرفوع ---
-      - name: Update README Download Link
+      # 5. تحديث رابط التحميل في ملف README (الواجهة الرئيسية)
+      - name: Link APK in README
         run: |
-          # هذا السطر سيقوم بتحديث الرابط في ملف README ليوجه المستخدم إلى ملف الـ APK المرفوع في الـ Releases
-          RELEASE_URL="https://github.com{{ github.repository }}/releases/download/v1.0.8-Master/$(basename ${{ steps.locate_apk.outputs.apk_path }})"
-          sed -i "s|🚀 Download Aegis_Tactical_v1.0.8M.apk|🚀 [Download Aegis_Tactical_v1.0.8M.apk]($RELEASE_URL)|g" README.md
+          # الرابط المباشر للملف بعد الرفع
+          DOWNLOAD_URL="https://github.com{{ github.repository }}/releases/download/v1.0.8-Release/${{ steps.locate_apk.outputs.apk_name }}"
           
-          git config --global user.name "Ali Al_amari [Bot]"
-          git config --global user.email "aliamari@bot.com"
+          # استبدال النص العادي برابط تشعبي في README
+          sed -i "s|🚀 Download Aegis_Tactical_v1.0.8M.apk|🚀 [Download Aegis_Tactical_v1.0.8M.apk]($DOWNLOAD_URL)|g" README.md
+          
+          # حفظ التعديلات في المستودع
+          git config --global user.name "Aegis-Build-Bot"
+          git config --global user.email "bot@aegis.tactical"
           git add README.md
-          git commit -m "Update download link in README for v1.0.8-Master" || echo "No changes to commit"
+          git commit -m "chore: link APK v1.0.8 to README [skip ci]" || echo "No changes"
           git push
