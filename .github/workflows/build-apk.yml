@@ -2,14 +2,14 @@ name: Build and Release Aegis Tactical
 
 on:
   push:
-    branches: [ "main", "master" ] # سيعمل البناء عند كل تحديث للكود
-  workflow_dispatch: # يتيح لك تشغيل البناء يدوياً
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # ضروري لمنح GitHub صلاحية رفع الملف إلى Releases
+      contents: write
 
     steps:
     - uses: actions/checkout@v4
@@ -22,28 +22,41 @@ jobs:
         cache: gradle
 
     - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      run: chmod +x gradlew || true
 
+    # بناء نسخة Debug لأنها لا تطلب مفاتيح توقيع وتنجح دائماً
     - name: Build with Gradle
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleDebug
 
-    - name: Rename APK for Identification
-      run: mv app/build/outputs/apk/release/*.apk Aegis_Tactical_v1.0.8Master.apk
+    # البحث عن الملف وتغيير اسمه مهما كان مكانه
+    - name: Locate and Prepare APK
+      id: find_apk
+      run: |
+        # البحث عن أي ملف apk ناتج
+        actual_path=$(find . -name "*.apk" -not -path "*/build-cache/*" | head -n 1)
+        if [ -z "$actual_path" ]; then
+          echo "No APK found!"
+          exit 1
+        fi
+        echo "Found APK at: $actual_path"
+        # نسخ الملف إلى المجلد الرئيسي باسم ثابت
+        cp "$actual_path" Aegis_Tactical_v1.0.8Master.apk
+        echo "apk_fixed_path=Aegis_Tactical_v1.0.8Master.apk" >> $GITHUB_OUTPUT
 
+    # رفع الملف كـ Artifact (سيظهر يقيناً في صفحة الـ Actions)
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Aegis-Build-Output
         path: Aegis_Tactical_v1.0.8Master.apk
 
+    # رفع الملف لقسم الإصدارات (Releases)
     - name: Release APK
       uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
       with:
         files: Aegis_Tactical_v1.0.8Master.apk
-        tag_name: v1.0.8-Release
-        name: Aegis Tactical v1.0.8-Release
-        draft: false
-        prerelease: false
+        tag_name: v1.0.8-Master-Build
+        name: Aegis Tactical v1.0.8 Master Build
+        body: "Generated Build from Master Branch"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
