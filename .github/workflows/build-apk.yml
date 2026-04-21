@@ -1,60 +1,30 @@
-name: Build and Release Aegis Tactical
+name: Aegis-Sovereign-Build
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
-
-env:
-  # حل مشكلة التحذير الذي ظهر لك بخصوص Node.js
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true 
+    branches: [ main ] # تأكد أن اسم فرعك الرئيسي هو main
+  workflow_dispatch: # هذا الزر سيسمح لك بالبناء يدوياً
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
-
     steps:
-    - uses: actions/checkout@v4
-
-    - name: set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-
-    # التحقق من وجود ملف gradlew قبل محاولة تشغيله
-    - name: Check Gradle Wrapper
-      run: |
-        if [ ! -f "gradlew" ]; then
-          echo "Gradle wrapper not found, attempting to generate..."
-          gradle wrapper
-        fi
-        chmod +x gradlew
-
-    - name: Build APK
-      run: ./gradlew assembleDebug --no-daemon
-
-    - name: Prepare APK
-      id: prepare
-      run: |
-        APK_PATH=$(find . -name "*.apk" | head -n 1)
-        if [ -z "$APK_PATH" ]; then exit 1; fi
-        cp "$APK_PATH" Aegis_Tactical_v1.0.8Master.apk
-        echo "path=Aegis_Tactical_v1.0.8Master.apk" >> $GITHUB_OUTPUT
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: Aegis-Output
-        path: Aegis_Tactical_v1.0.8Master.apk
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: Aegis_Tactical_v1.0.8Master.apk
-        tag_name: "v1.0.8-Build-${{ github.run_number }}"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
+      - name: Build APK Debug
+        run: ./gradlew assembleDebug
+        
+      - name: Upload Sovereign APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aegis_Tactical_v1.0.8_Final
+          path: app/build/outputs/apk/debug/app-debug.apk
