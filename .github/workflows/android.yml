@@ -1,17 +1,16 @@
-name: Build Android APK
+name: Build and Release APK
 on:
   push:
-    branches: 
-      - main
-      - master
-  pull_request:
     branches:
-      - main
       - master
+      - main
+  workflow_dispatch: # يتيح لك زر التشغيل اليدوي
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -25,11 +24,21 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      - name: Build Debug APK
+      - name: Build with Gradle
         run: ./gradlew assembleDebug
 
-      - name: Upload APK Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: my-app-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: Aegis-Master-APK
+          path: "**/build/outputs/apk/debug/*.apk"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+        with:
+          files: "**/build/outputs/apk/debug/*.apk"
+          tag_name: "v1.0.8-build-${{ github.run_number }}"
+          name: "Release v1.0.8 (Auto Build)"
+          draft: false
+          prerelease: false
