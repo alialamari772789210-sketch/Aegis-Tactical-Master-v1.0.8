@@ -1,29 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.jamesfirstok.aegis">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
     <application
-        android:label="Aegis Tactical v1.0.8"
+        android:label="Aegis Tactical v1.0.8-Sovereign"
         android:theme="@style/Theme.Aegis.Dark"
-        android:hardwareAccelerated="true">
+        android:icon="@mipmap/ic_launcher"
+        android:hardwareAccelerated="true"
+        android:allowBackup="false">
         
-        <activity android:name=".MainActivity" android:exported="true">
+        <activity 
+            android:name=".MainActivity" 
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <service android:name=".AegisNeuralService" android:foregroundServiceType="specialUse" />
+        <service 
+            android:name=".AegisNeuralService" 
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_DESCRIPTION" 
+                      android:value="Autonomous Tactical Neural Processing and Signal Intelligence" />
+        </service>
+
     </application>
 </manifest>
