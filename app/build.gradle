@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    // توحيد الهوية الرقمية للنواة السيادية
+    namespace 'com.jamesfirstok.aegis' 
+    compileSdk 34 // يدعم أحدث أنظمة أندرويد
+
+    defaultConfig {
+        applicationId "com.jamesfirstok.aegis"
+        minSdk 24     // يضمن التشغيل على نطاق واسع من الأجهزة (أندرويد 7.0+)
+        targetSdk 34  // تحسين الأداء والتوافق مع الأنظمة الحديثة
+        versionCode 1
+        versionName "1.0.8-Sovereign"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true // تفعيل حماية الكود وتصغير حجمه
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    // 1. المكتبات الأساسية ودعم واجهة المستخدم التكتيكية
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+
+    // 2. محرك الذكاء الاصطناعي السيادي (TensorFlow Lite)
+    // ضروري لمعالجة الإشارات وفك التشفير محلياً بدون إنترنت
+    implementation 'org.tensorflow:tensorflow-lite:2.12.0'
+
+    // 3. بروتوكولات الرصد والاتصال التكتيكي (الدرونز والعتاد الخارجي)
+    implementation 'com.github.mik3y:usb-serial-for-android:3.7.0'
+    implementation 'org.mavlink:mavlink-sdk:2.4.1'
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0' // لإدارة البيانات والربط العصبي
+
+    // 4. منظومة الرصد الجغرافي والخرائط الميدانية
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+}
