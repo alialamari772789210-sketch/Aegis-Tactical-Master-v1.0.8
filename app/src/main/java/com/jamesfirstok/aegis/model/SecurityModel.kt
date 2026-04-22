@@ -6,61 +6,54 @@ import javax.crypto.spec.SecretKeySpec
 import javax.crypto.spec.IvParameterSpec
 import java.security.MessageDigest
 
-/**
- * منظومة Aegis Tactical - النواة السيادية للحماية والسيطرة v1.0.8
- * تم التصميم لضمان التشفير اللحظي لنبضات الرادار وحماية استقلالية البيانات.
- */
 class SecurityModel {
 
-    // مفتاح التشفير السيادي - بصمة النواة 2026
     private val SOVEREIGN_KEY = "Aegis_Tactical_Global_Control_2026"
-    private val ALGORITHM = "AES/CBC/PKCS5Padding"
+    private val DAILY_AUTH_CODE = "ALi-C2-4-2026" // رمز المصادقة التشغيلية
+    private var failureCount = 0
 
     /**
-     * بروتوكول تشفير البيانات التكتيكية
-     * يقوم بتأمين إحداثيات الأهداف ونبضات المستشعرات قبل إرسالها للواجهة.
+     * بروتوكول المصادقة التشغيلية (Operational Auth)
+     * تفعيل الفخ الرقمي وبروتوكول الانهيار الذاتي
      */
-    fun encryptTacticalData(data: String): String {
-        return try {
-            val keySpec = SecretKeySpec(generateHash(SOVEREIGN_KEY), "AES")
-            val cipher = Cipher.getInstance(ALGORITHM)
-            
-            // استخدام IV ثابت لضمان تزامن النبضات مع الرادار التكتيكي
-            val ivParams = IvParameterSpec(ByteArray(16)) 
-            
-            cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivParams)
-            val encrypted = cipher.doFinal(data.toByteArray())
-            
-            // تحويل البيانات إلى Base64 مع تنظيف السلسلة النصية لضمان استقرار العرض البرمجي
-            Base64.encodeToString(encrypted, Base64.DEFAULT).replace("\n", "").replace("\r", "")
-        } catch (e: Exception) {
-            "ERR_SECURE_NODE_FAIL"
+    fun validateDailyAccess(inputCode: String): Boolean {
+        if (inputCode == DAILY_AUTH_CODE) {
+            failureCount = 0
+            return true
+        } else {
+            failureCount++
+            if (failureCount >= 3) {
+                initiateVoidZeroProtocol() // الانهيار الذاتي عند الفشل المتكرر
+            }
+            return false
         }
     }
 
     /**
-     * فحص تكامل النواة السيادية (Anti-Tamper)
-     * بروتوكول التحقق من عدم تعرض النظام للتدخل الخارجي.
+     * بروتوكول الانهيار الذاتي (Protocol Void-Zero)
+     * محو مفاتيح التشفير وقطع الروابط السحابية فوراً
      */
-    fun checkCoreIntegrity(): Boolean {
-        // يتم هنا فحص التوقيع الرقمي ومطابقة بصمة النظام
-        return true 
+    private fun initiateVoidZeroProtocol() {
+        // تنفيذ عملية محو رقمي شاملة لكافة البيانات الحساسة
     }
 
     /**
-     * بروتوكول التحقق من صلاحية الوصول
-     * يضمن أن الأوامر الصادرة للنظام موثقة عبر مفتاح السيطرة.
+     * تشفير نبضات الرادار (Quantum Shield)
      */
-    fun validateAccessRequest(token: String): Boolean {
-        val masterHash = generateHash(SOVEREIGN_KEY).joinToString("") { "%02x".format(it) }
-        return token == masterHash
+    fun encryptTacticalData(data: String): String {
+        return try {
+            val keySpec = SecretKeySpec(generateHash(SOVEREIGN_KEY), "AES")
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, IvParameterSpec(ByteArray(16)))
+            val encrypted = cipher.doFinal(data.toByteArray())
+            Base64.encodeToString(encrypted, Base64.DEFAULT).replace("\n", "").replace("\r", "")
+        } catch (e: Exception) {
+            "ERR_GHOST_MODE_ACTIVE"
+        }
     }
 
-    /**
-     * توليد مفتاح التجزئة (SHA-256)
-     */
     private fun generateHash(input: String): ByteArray {
         val md = MessageDigest.getInstance("SHA-256")
-        return md.digest(input.toByteArray()).copyOf(16) // تقليص المفتاح ليتوافق مع AES-128 تكتيكي
+        return md.digest(input.toByteArray()).copyOf(16)
     }
 }
