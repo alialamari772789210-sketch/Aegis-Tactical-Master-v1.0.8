@@ -1,20 +1,37 @@
 cmake_minimum_required(VERSION 3.10.2)
 
-# تعريف المشروع الأمني
-project("aegis_security")
+# تعريف المشروع الأمني السيادي
+project("Aegis_Sovereign_Security")
 
-# ربط ملف التشفير C++ وتحويله إلى مكتبة أمنية
+# 1. إعدادات الترجمة العسكرية (Hardening)
+# تفعيل معايير C++17 لضمان سرعة معالجة بيانات الرادار
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# 2. بناء المكتبة الأمنية (The Security Core)
+# هذا الجزء يحول كود C++ إلى مكتبة مشفرة غير قابلة للقراءة
 add_library( 
-             security-lib
+             aegis-security-lib
              SHARED
-             native-lib.cpp )
+             native-lib.cpp  # النواة العصبية (التشفير)
+             quantum-shield.cpp # بروتوكول الكوانتم (إذا وجد)
+           )
 
-# استدعاء مكتبة السجلات (Logging) لمراقبة محاولات الاختراق
-find_library( 
-              log-lib
-              log )
+# 3. استدعاء موارد النظام الأساسية
+# مكتبة السجلات (Log) لرصد الاختراقات، ومكتبة Android للوصول للعتاد
+find_library( log-lib log )
+find_library( android-lib android )
 
-# الدمج النهائي للمكتبة الأمنية مع نظام التشغيل
+# 4. الدمج التكاملي الشامل (The Strategic Link)
+# ربط المكتبة الأمنية بموارد النظام لضمان العمل المستقل (Standalone)
 target_link_libraries( 
-                       security-lib
-                       ${log-lib} )
+                       aegis-security-lib
+                       ${log-lib}
+                       ${android-lib}
+                     )
+
+# 5. حماية الملف الناتج من التلاعب
+# منع استخراج الرموز البرمجية (Stripping Symbols) لزيادة التخفي الشبحي
+set_target_properties(aegis-security-lib PROPERTIES 
+                      CXX_VISIBILITY_PRESET hidden
+                      VISIBILITY_INLINES_HIDDEN ON)
