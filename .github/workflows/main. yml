@@ -1,79 +1,66 @@
-name: Aegis Sovereign - Unified Strategic Pipeline
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:padding="20dp">
 
-on:
-  push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+    <LinearLayout
+        android:id="@+id/headerLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_alignParentTop="true">
 
-jobs:
-  operational_sync_and_build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        <TextView
+            android:id="@+id/commanderName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#00FF00"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:text="COMMANDER: ALI AL-AMMARI" />
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="8dp"
+            android:background="#00FF00" />
+    </LinearLayout>
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew || true
+    <TextView
+        android:id="@+id/sovereignStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:textColor="#00FF00"
+        android:textSize="18sp"
+        android:fontFamily="monospace"
+        android:lineSpacingExtra="8dp"
+        android:text="[ AEGIS SOVEREIGN CORE v7.2.6 ]\n------------------------------\nSYSTEM: FULLY ENCRYPTED\nAI ENGINE: LOCAL v7.0\nSTEALTH: ACTIVE (GHOST MODE)\nSTATUS: MISSION READY" />
 
-      # 1. بناء التطبيق (سيستغرق وقتاً لأنه سيبحث عن كافة المكتبات)
-      - name: Build APK
-        run: ./gradlew assembleDebug --stacktrace
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_alignParentBottom="true">
 
-      # 2. تحديد مسار الملف بدقة (رادار البحث الشامل)
-      - name: Locate APK
-        id: locate_apk
-        run: |
-          # البحث عن أي ملف APK ناتج عن عملية البناء
-          APK_FILE=$(find . -name "*.apk" -not -path "*/build-cache/*" | head -n 1)
-          if [ -z "$APK_FILE" ]; then
-            echo "Error: APK not found!"
-            exit 1
-          fi
-          echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
-          echo "apk_name=$(basename $APK_FILE)" >> $GITHUB_OUTPUT
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginBottom="8dp"
+            android:background="#00FF00" />
 
-      # 3. حفظ الملف في "القطع الأثرية" (Artifacts) لكي يظهر في الصفحة التي صورتها
-      - name: Save to Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Aegis_Tactical_v1.0.8M_Internal
-          path: ${{ steps.locate_apk.outputs.apk_path }}
+        <TextView
+            android:id="@+id/footerStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#00FF00"
+            android:textSize="12sp"
+            android:text="QUANTUM SHIELD ACTIVE // VOID-ZERO READY" />
+    </LinearLayout>
 
-      # 4. رفع الملف لقسم الإصدارات (Releases) لإنشاء الرابط الدائم
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ steps.locate_apk.outputs.apk_path }}
-          tag_name: v1.0.8-Release
-          name: Aegis Tactical v1.0.8 "Voice Master"
-          body: "Verification Hash: c892e8a1-ff82-416b-a23d-004a4b4f5353"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # 5. تحديث رابط التحميل في ملف README (الواجهة الرئيسية)
-      - name: Link APK in README
-        run: |
-          # الرابط المباشر للملف بعد الرفع
-          DOWNLOAD_URL="https://github.com{{ github.repository }}/releases/download/v1.0.8-Release/${{ steps.locate_apk.outputs.apk_name }}"
-          
-          # استبدال النص العادي برابط تشعبي في README
-          sed -i "s|🚀 Download Aegis_Tactical_v1.0.8M.apk|🚀 [Download Aegis_Tactical_v1.0.8M.apk]($DOWNLOAD_URL)|g" README.md
-          
-          # حفظ التعديلات في المستودع
-          git config --global user.name "Aegis-Build-Bot"
-          git config --global user.email "bot@aegis.tactical"
-          git add README.md
-          git commit -m "chore: link APK v1.0.8 to README [skip ci]" || echo "No changes"
-          git push
+</RelativeLayout>
