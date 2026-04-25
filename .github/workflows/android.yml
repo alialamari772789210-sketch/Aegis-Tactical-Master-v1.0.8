@@ -4,6 +4,8 @@ on:
     branches:
       - master
       - main
+    tags:
+      - 'v*' # سيعمل تلقائياً عند دفع أي وسم يبدأ بحرف v
   workflow_dispatch: # يتيح لك زر التشغيل اليدوي
 
 jobs:
@@ -20,6 +22,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle' # إضافة التخزين المؤقت لتسريع البناء
 
       - name: Make Gradlew Executable
         run: chmod +x gradlew
@@ -27,18 +30,24 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew assembleDebug
 
+      # خطوة إضافية للتأكد من وجود الملف ومساره في حال حدوث خطأ
+      - name: Check APK Path
+        run: find . -name "*.apk"
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Aegis-Master-APK
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: app/build/outputs/apk/debug/*.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         with:
-          files: "**/build/outputs/apk/debug/*.apk"
+          files: "app/build/outputs/apk/debug/*.apk"
+          # استخدام رقم البناء الحالي لضمان عدم تكرار اسم الوسم
           tag_name: "v1.0.8-build-${{ github.run_number }}"
-          name: "Release v1.0.8 (Auto Build)"
+          name: "Release v1.0.8 (Build #${{ github.run_number }})"
           draft: false
           prerelease: false
+          generate_release_notes: true # سيقوم بكتابة سجل التغييرات تلقائياً
