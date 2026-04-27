@@ -1,72 +1,32 @@
-plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
-}
+// AEGIS TACTICAL PROJECT - ROOT BUILD FILE
+// ملف القيادة العليا - لتنسيق الإضافات البرمجية للمشروع بالكامل
 
-android {
-    // الهوية البرمجية الموحدة للمنظومة السيادية
-    namespace 'com.jamesfirstok.aegis' 
-    compileSdk 34
-
-    defaultConfig {
-        applicationId "com.jamesfirstok.aegis"
-        minSdk 24 // لضمان العمل على مختلف الأجهزة الميدانية
-        targetSdk 34
-        versionCode 1
-        versionName "1.0.8-Sovereign"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary true
-        }
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
     }
-
-    buildTypes {
-        release {
-            // تفعيل حماية الكود وتصغير الحجم لضمان التخفي البرمجي
-            minifyEnabled true 
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = '17'
-    }
-
-    buildFeatures {
-        compose true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.1'
+    dependencies {
+        // تحديد نسخة أداة بناء الأندرويد (تأكد أنها متوافقة مع نسخة Android Studio لديك)
+        classpath 'com.android.tools.build:gradle:8.2.0'
+        // ربط لغة Kotlin بالمنظومة
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0"
     }
 }
 
-dependencies {
-    // 1. النواة البرمجية ودعم نظام أندرويد
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-    implementation 'androidx.activity:activity-compose:1.8.2'
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        
+        // إعداد استراتيجي: إضافة مستودع JitPack
+        // هذا المستودع ضروري جداً لجلب مكتبات الرصد الخارجي مثل (USB-Serial) 
+        // ومكتبات التحكم في الدرونز التي لا تتوفر في المستودعات العادية
+        maven { url 'https://jitpack.io' }
+    }
+}
 
-    // 2. واجهة المستخدم التكتيكية (Jetpack Compose) لضمان سلاسة الرادار
-    implementation platform('androidx.compose:compose-bom:2023.08.00')
-    implementation 'androidx.compose.ui:ui'
-    implementation 'androidx.compose.ui:ui-graphics'
-    implementation 'androidx.compose.ui:ui-tooling-preview'
-    implementation 'androidx.compose.material3:material3'
-
-    // 3. محرك الذكاء الاصطناعي السيادي v7.0 (النواة العصبية)
-    implementation 'org.tensorflow:tensorflow-lite:2.12.0'
-
-    // 4. منظومة الرصد، الدرونز، والاتصال الاستخباراتي (SIGINT)
-    implementation 'com.github.mik3y:usb-serial-for-android:3.7.0' // ربط العتاد الخارجي
-    implementation 'org.mavlink:mavlink-sdk:2.4.1'               // بروتوكول الدرونز
-    implementation 'com.google.android.gms:play-services-maps:18.2.0' // الرصد الجغرافي
-    implementation 'com.squareup.retrofit2:retrofit:2.9.0'      // الربط الشبكي المشفر
+// مهمة اختيارية لضمان تنظيف الملفات المؤقتة عند إعادة البناء
+tasks.register('clean', Delete) {
+    delete rootProject.buildDir
 }
