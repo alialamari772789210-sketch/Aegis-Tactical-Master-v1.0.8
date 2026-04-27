@@ -18,9 +18,18 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:textColor="#00FF00"
-            android:textSize="22sp"
+            android:textSize="20sp"
+            android:fontFamily="monospace"
             android:textStyle="bold"
             android:text="COMMANDER: ALI AL-AMMARI" />
+        
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="#00AA00"
+            android:textSize="14sp"
+            android:text="RANK: COLONEL (ENG)" />
 
         <View
             android:layout_width="match_parent"
@@ -36,10 +45,10 @@
         android:layout_centerInParent="true"
         android:gravity="center"
         android:textColor="#00FF00"
-        android:textSize="18sp"
+        android:textSize="16sp"
         android:fontFamily="monospace"
-        android:lineSpacingExtra="8dp"
-        android:text="[ AEGIS SOVEREIGN CORE v7.2.6 ]\n------------------------------\nSYSTEM: FULLY ENCRYPTED\nAI ENGINE: LOCAL v7.0\nSTEALTH: ACTIVE (GHOST MODE)\nSTATUS: MISSION READY" />
+        android:lineSpacingExtra="10dp"
+        android:text="[ AEGIS SOVEREIGN CORE v7.2.6 ]\n------------------------------\nSYSTEM: FULLY ENCRYPTED\nAI ENGINE: LOCAL v7.0\nSTEALTH: ACTIVE (GHOST MODE)\nRADAR: SCANNING SECTOR 7\nSTATUS: MISSION READY" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -59,7 +68,8 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:textColor="#00FF00"
-            android:textSize="12sp"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
             android:text="QUANTUM SHIELD ACTIVE // VOID-ZERO READY" />
     </LinearLayout>
 
