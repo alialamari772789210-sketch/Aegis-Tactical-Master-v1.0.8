@@ -22,7 +22,7 @@ import kotlin.concurrent.timerTask
 /**
  * AEGIS TACTICAL MASTER - SOVEREIGN CORE v7.2.6
  * Architect: Colonel Ali Al-Ammari
- * النسخة الموحدة: تدمج الرصد المغناطيسي، الرصد الراديوي، والارتباط الفضائي.
+ * المنظومة الموحدة: رصد مغناطيسي، رصد راديوي، وارتباط فضائي تكتيكي.
  */
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
@@ -37,21 +37,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     
     private var magField = FloatArray(3)
 
-    // تحميل النواة الصلبة (C++)
     companion object {
         init {
+            // تحميل المكتبة الصلبة المكتوبة بلغة C++
             System.loadLibrary("aegis-security-lib")
         }
     }
 
-    // الربط مع المحرك الخلفي (Service Engine)
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(n: ComponentName?, b: IBinder?) {
             val binder = b as AegisService.LocalBinder
             aegisService = binder.getService()
             isBound = true
             aegisService?.startEngine()
-            injectLogToUI("Aegis Engine: Connected & Secured")
+            injectLogToUI("Aegis Engine: Sovereign Link Established")
         }
         override fun onServiceDisconnected(n: ComponentName?) {
             isBound = false
@@ -61,22 +60,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. تهيئة المحركات التكتيكية
+        // 1. تهيئة المحركات التكتيكية والمادية
         alertManager = AlertManager(this)
         val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         radioProcessor = RadioAcquisitionProcessor(wifiManager)
         
-        // 2. تهيئة الواجهة التكتيكية (HUD)
+        // 2. إعداد شاشة الـ HUD التكتيكية
         webView = WebView(this)
         setContentView(webView)
         configureSecureWebView()
         
-        // 3. تفعيل الحساسات والرصد
+        // 3. تفعيل البروتوكولات الميدانية
         initSensors()
         checkPermissions()
         startAegisService()
-        
-        // 4. بدء حلقة الرصد الراديوي المتكرر (من الكود رقم 1)
         startRadioScanLoop()
     }
 
@@ -89,7 +86,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             cacheMode = WebSettings.LOAD_NO_CACHE
         }
 
-        // جسر الربط السيادي (الدمج بين الكودين)
         webView.addJavascriptInterface(AegisInterface(), "AegisBridge")
         
         webView.webViewClient = object : WebViewClient() {
@@ -106,20 +102,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val targets = radioProcessor.executeRadioAcquisition()
             if (targets.isNotEmpty()) {
                 runOnUiThread {
-                    // إرسال تنبيه للواجهة بوجود أهداف راديوية (درونات)
-                    webView.evaluateJavascript("updateRadarDisplay('${targets.size} Signals Detected');", null)
-                    
-                    // تنبيه مادي إذا كانت الإشارة قوية (قرب الهدف)
+                    webView.evaluateJavascript("updateRadarDisplay('${targets.size} Targets Detected');", null)
+                    // تنبيه نبضي في حال اقتراب الهدف (إشارة > -50dBm)
                     val topGain = targets[0]["gain"] as Int
-                    if (topGain > -50) alertManager.triggerAlert(200)
+                    if (topGain > -50) alertManager.triggerAlert(300)
                 }
             }
         }, 0, 5000)
     }
 
-    /**
-     * الجسر البرمجي الموحد
-     */
     inner class AegisInterface {
         @JavascriptInterface
         fun getTacticalData(): String {
@@ -127,7 +118,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 put("commander", "Ali Al-Ammari")
                 put("status", "MISSION READY")
                 put("mag_x", magField[0])
-                put("sat_link", "CONNECTED (DELTA-992)")
+                put("sat_link", "ACTIVE")
             }
             return securityModel.encryptTacticalData(data.toString())
         }
@@ -139,7 +130,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    // --- إدارة الحساسات (Magnetic Radar) ---
     private fun initSensors() {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val magSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
@@ -149,7 +139,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
             magField = event.values
-            // تحديث الرادار بنبضات مغناطيسية مشفرة
             val signal = securityModel.encryptTacticalData(magField[0].toString())
             webView.evaluateJavascript("updateMagneticPulse('$signal')", null)
         }
@@ -157,7 +146,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
-    // --- إدارة الصلاحيات والخدمة ---
+    private fun injectLogToUI(msg: String) {
+        webView.evaluateJavascript("console.log('AEGIS_CORE: $msg');", null)
+    }
+
     private fun checkPermissions() {
         val perms = mutableListOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= 31) {
