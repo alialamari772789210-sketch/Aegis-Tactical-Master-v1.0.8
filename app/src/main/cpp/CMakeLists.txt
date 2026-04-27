@@ -1,37 +1,41 @@
 cmake_minimum_required(VERSION 3.10.2)
 
-# تعريف المشروع الأمني السيادي
+# مشروع الحماية السيادية - AEGIS TACTICAL
 project("Aegis_Sovereign_Security")
 
-# 1. إعدادات الترجمة العسكرية (Hardening)
-# تفعيل معايير C++17 لضمان سرعة معالجة بيانات الرادار
+# إعدادات المعالجة التكتيكية (C++17) لضمان أقصى سرعة في تحليل الإشارات
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 2. بناء المكتبة الأمنية (The Security Core)
-# هذا الجزء يحول كود C++ إلى مكتبة مشفرة غير قابلة للقراءة
+# بناء المكتبة الأمنية المحصنة (النواة الصلبة)
+# هذه المكتبة ستكون بصيغة .so داخل الـ APK لزيادة صعوبة اختراقها
 add_library( 
              aegis-security-lib
              SHARED
-             native-lib.cpp  # النواة العصبية (التشفير)
-             quantum-shield.cpp # بروتوكول الكوانتم (إذا وجد)
+             native-lib.cpp
            )
 
-# 3. استدعاء موارد النظام الأساسية
-# مكتبة السجلات (Log) لرصد الاختراقات، ومكتبة Android للوصول للعتاد
+# استدعاء مكتبات النظام الأساسية للتعامل مع السجلات والعتاد
 find_library( log-lib log )
 find_library( android-lib android )
+find_library( jnigraphics-lib jnigraphics ) # لمعالجة صور الرادار بذكاء
 
-# 4. الدمج التكاملي الشامل (The Strategic Link)
-# ربط المكتبة الأمنية بموارد النظام لضمان العمل المستقل (Standalone)
+# الربط التكاملي بين النواة والعتاد لضمان تدفق البيانات
 target_link_libraries( 
                        aegis-security-lib
                        ${log-lib}
                        ${android-lib}
+                       ${jnigraphics-lib}
                      )
 
-# 5. حماية الملف الناتج من التلاعب
-# منع استخراج الرموز البرمجية (Stripping Symbols) لزيادة التخفي الشبحي
+# بروتوكول التخفي الرقمي (Anti-Reverse Engineering)
+# إخفاء الرموز البرمجية لمنع الهندسة العكسية من قبل أي طرف خارجي
 set_target_properties(aegis-security-lib PROPERTIES 
                       CXX_VISIBILITY_PRESET hidden
-                      VISIBILITY_INLINES_HIDDEN ON)
+                      VISIBILITY_INLINES_HIDDEN ON
+                      POSITION_INDEPENDENT_CODE ON)
+
+# إعدادات تحسين الأداء الميداني (Optimization for Release)
+if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fomit-frame-pointer -fdata-sections -ffunction-sections")
+endif()
