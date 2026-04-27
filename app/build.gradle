@@ -4,24 +4,39 @@ plugins {
 }
 
 android {
-    // توحيد الهوية الرقمية للنواة السيادية
     namespace 'com.jamesfirstok.aegis' 
-    compileSdk 34 // يدعم أحدث أنظمة أندرويد
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.jamesfirstok.aegis"
-        minSdk 24     // يضمن التشغيل على نطاق واسع من الأجهزة (أندرويد 7.0+)
-        targetSdk 34  // تحسين الأداء والتوافق مع الأنظمة الحديثة
-        versionCode 1
-        versionName "1.0.8-Sovereign"
+        minSdk 24
+        targetSdk 34
+        versionCode 8
+        versionName "1.0.8-Sovereign-Master"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17"
+                // تحسين المعالجة لمعماريات ARM المتطورة
+                abiFilters "armeabi-v7a", "arm64-v8a"
+            }
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled true // تفعيل حماية الكود وتصغير حجمه
+            minifyEnabled true 
+            // تفعيل حماية الأكواد لمنع الهندسة العكسية
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
         }
     }
 
@@ -33,25 +48,26 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
-    // 1. المكتبات الأساسية ودعم واجهة المستخدم التكتيكية
+    // المكتبات الأساسية
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-
-    // 2. محرك الذكاء الاصطناعي السيادي (TensorFlow Lite)
-    // ضروري لمعالجة الإشارات وفك التشفير محلياً بدون إنترنت
+    
+    // محركات الذكاء الاصطناعي والرصد التكتيكي
     implementation 'org.tensorflow:tensorflow-lite:2.12.0'
-
-    // 3. بروتوكولات الرصد والاتصال التكتيكي (الدرونز والعتاد الخارجي)
-    implementation 'com.github.mik3y:usb-serial-for-android:3.7.0'
     implementation 'org.mavlink:mavlink-sdk:2.4.1'
-    implementation 'com.squareup.retrofit2:retrofit:2.9.0' // لإدارة البيانات والربط العصبي
-
-    // 4. منظومة الرصد الجغرافي والخرائط الميدانية
+    
+    // الاتصالات والارتباط الفضائي
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
+    
+    // أدوات الحماية والتشفير
+    implementation "androidx.security:security-crypto:1.1.0-alpha06"
 }
