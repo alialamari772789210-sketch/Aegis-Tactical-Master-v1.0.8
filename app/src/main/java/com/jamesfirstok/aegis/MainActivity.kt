@@ -12,6 +12,7 @@ import android.os.*
 import android.webkit.*
 import androidx.appcompat.app.AppCompatActivity
 import com.jamesfirstok.aegis.model.SecurityModel
+import com.jamesfirstok.aegis.model.ConfigManager // [إضافة] استيراد مدير الإعدادات المشفرة
 import com.jamesfirstok.aegis.service.AegisService
 import com.jamesfirstok.aegis.service.AlertManager
 import com.jamesfirstok.aegis.tactical.RadioAcquisitionProcessor
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private lateinit var alertManager: AlertManager
     private lateinit var radioProcessor: RadioAcquisitionProcessor
+    private lateinit var configManager: ConfigManager // [إضافة] تعريف مدير التكوين
     
     private var magField = FloatArray(3)
 
@@ -65,6 +67,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         radioProcessor = RadioAcquisitionProcessor(wifiManager)
         
+        // [إضافة] تهيئة مدير الإعدادات المشفرة وتوثيق الهوية
+        configManager = ConfigManager(this)
+        configManager.saveCommanderIdentity("Colonel Ali Al-Ammari")
+        
         // 2. إعداد شاشة الـ HUD التكتيكية
         webView = WebView(this)
         setContentView(webView)
@@ -75,6 +81,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         checkPermissions()
         startAegisService()
         startRadioScanLoop()
+
+        // [إضافة] تسجيل التردد التكتيكي في واجهة القيادة فور التشغيل
+        val currentFreq = configManager.getStoredFrequency()
+        injectLogToUI("Tactical Frequency Set to: $currentFreq KHz")
     }
 
     private fun configureSecureWebView() {
