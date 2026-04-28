@@ -16,11 +16,9 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            /* إضافة تأثير مسح الرادار للخلفية */
             background-image: radial-gradient(circle, rgba(0, 204, 255, 0.05) 1px, transparent 1px);
             background-size: 30px 30px;
         }
-
         .tactical-hud {
             border: 2px solid #00CCFF;
             padding: 20px;
@@ -32,7 +30,6 @@
             text-align: center;
             border-radius: 2px;
         }
-
         h1 {
             font-size: 1rem;
             letter-spacing: 3px;
@@ -43,7 +40,6 @@
             display: flex;
             justify-content: space-between;
         }
-
         #signalMatrix {
             background: #000;
             border: 1px solid rgba(0, 204, 255, 0.2);
@@ -51,7 +47,6 @@
             height: 200px;
             display: block;
         }
-
         .telemetry-readout {
             display: flex;
             justify-content: space-between;
@@ -60,28 +55,18 @@
             text-transform: uppercase;
             text-align: left;
         }
-
-        .data-box {
-            flex: 1;
-            padding: 5px;
-        }
-
+        .data-box { flex: 1; padding: 5px; }
         .commander-info {
             flex: 1;
             text-align: right;
             border-left: 1px dashed rgba(0, 204, 255, 0.3);
             padding-left: 15px;
         }
-
-        .status-glow {
-            animation: pulse 1.5s infinite;
-        }
-
+        .status-glow { animation: pulse 1.5s infinite; }
         @keyframes pulse {
             0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px #00CCFF); }
             50% { opacity: 0.7; filter: drop-shadow(0 0 2px #00CCFF); }
         }
-
         .architect-seal {
             margin-top: 15px;
             font-size: 0.6rem;
@@ -90,22 +75,18 @@
             border-top: 1px solid rgba(0, 204, 255, 0.2);
             padding-top: 5px;
         }
-
         .value { color: #FFF; font-weight: bold; }
         .gold { color: #FFD700; }
         .green { color: #00FF00; }
     </style>
 </head>
 <body>
-
     <div class="tactical-hud">
         <h1 class="status-glow">
             <span>AEGIS SYSTEM ACTIVE</span>
             <span id="clock">00:00:00</span>
         </h1>
-        
         <canvas id="signalMatrix"></canvas>
-
         <div class="telemetry-readout">
             <div class="data-box">
                 <p>📡 SIGNAL: <span id="signalVal" class="value">SCANNING...</span></p>
@@ -118,38 +99,29 @@
                 <p>SECTOR: <span class="value">AL-DHALEA</span></p>
             </div>
         </div>
-
-        <div class="architect-seal">SOVEREIGNTY PROTOCOL v7.2.6 // AUTHORIZED ACCESS ONLY</div>
+        <div class="architect-seal">SOVEREIGNTY PROTOCOL v7.2.6 // MASTER SOVEREIGN BUILD</div>
     </div>
-
     <script>
         const canvas = document.getElementById('signalMatrix');
         const ctx = canvas.getContext('2d');
-
         function resizeCanvas() {
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
-
-        // رسم مصفوفة الإشارة (نمط الرصد الراديوي)
         function drawSignal() {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // رسم خطوط الشبكة الخلفية
             ctx.strokeStyle = 'rgba(0, 204, 255, 0.05)';
             for(let x=0; x<canvas.width; x+=20) {
                 ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
             }
-
             ctx.strokeStyle = '#00CCFF';
             ctx.lineWidth = 2;
             ctx.shadowBlur = 10;
             ctx.shadowColor = '#00CCFF';
             ctx.beginPath();
-            
             const midY = canvas.height / 2;
             for (let i = 0; i < canvas.width; i += 10) {
                 let h = Math.random() * (canvas.height / 2.5);
@@ -157,29 +129,21 @@
                 ctx.lineTo(i, midY + h);
             }
             ctx.stroke();
-            
             document.getElementById('signalVal').innerText = (98.1 + Math.random() * 1.8).toFixed(1) + "%";
         }
-
-        // تحديث الوقت تكتيكياً
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
         }
-
-        // دالة استقبال البيانات من Android (MainActivity)
-        function updateRadar(encryptedSignal) {
-            // هنا يتم استقبال البيانات المشفرة من الحساسات
-            // للتبسيط، سنقوم بزيادة كثافة الرسم عند وصول إشارة قوية
-            drawSignal();
+        function triggerVoiceAlert(message) {
+            if(window.AegisBridge) {
+                window.AegisBridge.speak("سيادة العقيد علي.. " + message);
+            }
         }
-
-        // استقبال تحية القائد عند بدء التشغيل
         function triggerGreeting(name) {
-            console.log("Welcome, " + name);
             document.getElementById('commanderName').innerText = name.toUpperCase();
+            triggerVoiceAlert("النظام جاهز للعمل وتحت أمرك");
         }
-
         setInterval(drawSignal, 150);
         setInterval(updateClock, 1000);
     </script>
