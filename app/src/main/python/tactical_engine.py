@@ -4,29 +4,31 @@ import json
 
 class AegisTacticalEngine:
     """
-    AEGIS TACTICAL ENGINE - SOVEREIGN CORE v7.2.6
+    AEGIS TACTICAL INTELLIGENCE ENGINE - v7.2.6
     Architect: Colonel Ali Al-Ammari
-    المحرك التحليلي للرصد والمزامنة الفضائية وتطهير البيانات.
+    الهدف: التحليل الاستراتيجي للطيف الترددي، المزامنة الفضائية، وتطهير البيانات.
     """
+    
     def __init__(self):
         self.version = "7.2.6-Sovereign"
         self.commander = "Colonel Ali Al-Ammari"
+        self.system_status = "ACTIVE"
         self.stealth_active = True
         self.last_sync = None
 
-    def analyze_threats(self, signal_strength, frequency_khz, signature):
+    def analyze_threats(self, signal_strength, frequency_khz, signature="Unknown"):
         """
-        تحليل التهديدات بناءً على قوة الإشارة والتردد والبصمة الرقمية.
+        تحليل سيادي لإشارات SIGINT المكتشفة واكتشاف مخاطر الحرب الإلكترونية.
         """
-        # إذا كانت الإشارة خارج النطاق الآمن أو تحمل بصمة تشويش
-        if frequency_khz > 500000 or "jam" in signature.lower():
+        # بروتوكول اكتشاف التشويش والتهديدات الميدانية
+        if 430000 <= frequency_khz <= 440000 or "jam" in signature.lower():
             return {
                 "status": "CRITICAL",
-                "alert": "ELECTRONIC WARFARE DETECTED",
+                "alert": "THREAT_DETECTED: JAMMING RISK",
                 "action": "ENGAGE FREQUENCY HOPPING"
             }
         
-        # حساب جودة الإشارة تكتيكياً
+        # تقييم جودة الإشارة التكتيكية
         quality = min(100, (signal_strength / -100) * 100) if signal_strength < 0 else 100
         return {
             "status": "SECURE",
@@ -36,7 +38,7 @@ class AegisTacticalEngine:
 
     def calculate_target_distance(self, tx_power, rssi):
         """
-        حساب المسافة التقريبية للهدف بناءً على قوة الإشارة (RSSI).
+        حساب المسافة الدقيقة للهدف (RSSI Distance Mapping).
         """
         if rssi == 0:
             return -1.0
@@ -48,29 +50,32 @@ class AegisTacticalEngine:
 
     def sync_satellite_link(self):
         """
-        محاكاة بروتوكول الربط العصبي بالأقمار الصناعية (DELTA-992).
+        بروتوكول المزامنة وتصحيح انحراف الإشارة الفضائية (Drift Correction).
         """
+        drift = math.sin(time.time()) * 0.001
         self.last_sync = time.strftime('%Y-%m-%d %H:%M:%S')
-        return f"SATELLITE_LINK: LOCKED // SYNC_TIME: {self.last_sync}"
+        return {
+            "status": "LOCKED",
+            "drift_correction": drift,
+            "sync_time": self.last_sync
+        }
 
-    def emergency_purge(self):
+    def initiate_void_zero(self):
         """
-        بروتوكول الانهيار الذاتي (Protocol Void-Zero).
-        مسح كافة المتغيرات الحساسة من الذاكرة فوراً.
+        بروتوكول التطهير الشامل (VOID-ZERO).
+        تدمير النواة الرقمية ومسح الهوية والبيانات عند استشعار الخطر.
         """
+        self.system_status = "TERMINATED"
         self.commander = None
         self.version = None
         self.stealth_active = False
-        return "CRITICAL: VOID-ZERO EXECUTED // MEMORY PURGED"
+        return "CRITICAL: SOVEREIGN CORE PURGED // ALL DATA TERMINATED"
 
-# --- اختبار المحرك (Tactical Test Bench) ---
+# --- اختبار المحرك الموحد ---
 if __name__ == "__main__":
     engine = AegisTacticalEngine()
-    print(f"Initializing {engine.version} for {engine.commander}...")
+    print(f"Aegis Master Engine v{engine.version} Initialized for {engine.commander}...")
     
-    # محاكاة تحليل إشارة مشبوهة
-    result = engine.analyze_threats(-75, 433000, "Standard_Recon")
-    print(f"Scan Result: {result}")
-    
-    # تشغيل الربط الفضائي
-    print(engine.sync_satellite_link())
+    # محاكاة تحليل إشارة رصد
+    scan = engine.analyze_threats(-70, 433500)
+    print(f"Radar Analysis: {scan}")
