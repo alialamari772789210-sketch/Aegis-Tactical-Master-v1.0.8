@@ -1,80 +1,49 @@
-name: Aegis Tactical Master v7.2.6 - Autonomous Final Build
+name: Aegis Tactical v7.2.6 - Master Final
 
 on:
   push:
-    branches: [ "main", "Master", "master" ]
+    branches: [ "main", "Master" ]
   workflow_dispatch: 
 
 jobs:
-  build_and_deploy:
+  finalize_build_sequence:
     runs-on: ubuntu-latest
     permissions:
       contents: write 
 
     steps:
-      - name: 📥 Checkout Code
+      - name: 📥 Checkout Sovereign Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: ☕ Set up JDK 17
+      - name: ☕ Set up JDK 17 (Aegis Standard)
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: 🛡️ Grant Execute Permission
-        run: |
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-          fi
-
-      - name: 🛠️ Setup Gradle (Autonomous Engine)
+      - name: 🛠️ Setup Gradle (Sovereign Auto-Engine)
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.5
-          generate-job-summary: true
 
-      - name: 🏗️ Build Aegis Tactical Master APK
+      - name: 🏗️ Execute Master Build
         run: gradle assembleDebug --stacktrace
 
-      - name: 🆔 Rename and Verify APK
+      - name: 🆔 Rename APK
         run: |
           APK_PATH=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "❌ Error: APK file not found!"
-            exit 1
-          fi
           mv "$APK_PATH" Aegis_Tactical_v7.2.6_Master_Final.apk
           echo "FINAL_APK=Aegis_Tactical_v7.2.6_Master_Final.apk" >> $GITHUB_ENV
 
-      - name: 💾 Upload Internal Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Aegis-Tactical-Master-Final
-          path: ${{ env.FINAL_APK }}
-
       - name: 🚀 Global Strategic Release
         uses: softprops/action-gh-release@v1
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Master' || github.ref == 'refs/heads/master'
         with:
           files: ${{ env.FINAL_APK }}
           tag_name: v7.2.6-Final
-          name: Aegis Tactical Master v7.2.6
+          name: Aegis Tactical v7.2.6 "Master Final"
           body: |
-            ### 🎖️ Aegis Tactical v7.2.6 - Master Autonomous Build
+            ### 🎖️ Aegis Tactical v7.2.6 - Master Final
             **Architect:** Colonel Ali Al-Ammari
-            **Status:** 100% Autonomous & Operational
-            
-            **القدرات التشغيلية الأساسية:**
-            - استقلالية سيادية مطلقة (لا يتطلب أي عتاد فيزيائي خارجي).
-            - دمج محرك الذكاء الاصطناعي المستقل v7.0 للمعالجة التكتيكية.
-            - بروتوكول الارتباط المباشر بالأقمار الصناعية (Direct Satellite Link).
-            - رادار تكتيكي مدمج يعتمد على المعالجة البرمجية الصرفة.
-            - التوقيع الرقمي السيادي: RSA-4096 (Verified).
-            - بروتوكول حماية البيانات: AES-256 Encrypted.
-          draft: false
-          prerelease: false
+            **Status:** 100% Verified & Secure
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
