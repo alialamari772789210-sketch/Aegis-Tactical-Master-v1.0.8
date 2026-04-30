@@ -38,8 +38,8 @@ jobs:
 
       # ✅ إصلاح أمر البناء
       - name: Build APK
-        run: gradle assembleDebug
-
+        run: 
+run: gradle assembleDebug --stacktrace
       - name: Rename and Verify APK
         run: |
           APK_PATH=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
