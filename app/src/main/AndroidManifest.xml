@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.jamesfirstok.aegis">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -9,12 +8,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
 
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -24,11 +22,10 @@
     
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:label="Aegis Tactical v1.0.8-Sovereign"
-        android:theme="@style/Theme.AppCompat.NoActionBar"
+        android:theme="@style/Theme.Material3.DayNight.NoActionBar"
         android:icon="@mipmap/ic_launcher"
         android:hardwareAccelerated="true"
         android:allowBackup="false"
@@ -49,14 +46,8 @@
 
         <service 
             android:name=".service.AegisService" 
-            android:foregroundServiceType="specialUse"
-            android:exported="false">
-            <property android:name="android.app.PROPERTY_SPECIAL_USE_DESCRIPTION" 
-                      android:value="Autonomous Tactical Neural Processing and Signal Intelligence for Colonel Ali Al-Ammari" />
-        </service>
-
-        <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
-            android:resource="@xml/device_filter" />
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
 
     </application>
 </manifest>
