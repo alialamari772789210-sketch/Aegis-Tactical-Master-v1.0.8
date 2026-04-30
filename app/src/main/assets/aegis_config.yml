@@ -1,0 +1,23 @@
+version: "7.2.6"
+project: "AEGIS_TACTICAL"
+codename: "THE_SYNTHETIC_SENTINEL"
+
+services:
+  aegis_core:
+    image: tactical/kernel-node:v7.2.6
+    deployment:
+      mode: global
+      strategy:
+        type: RollingUpdate
+        max_unavailable: 0
+    environment:
+      CLEARANCE_LEVEL: 5
+      AUTH_PROVIDER: COLONEL_83
+      PRECISION_MODE: HIGH_THREAD
+    networks:
+      - secure_mesh_internal
+      - satellite_uplink_encrypted
+
+  drone_fusion_bridge:
+    image: tactical/fusion-v2:latest
+    capabilities: [NET_ADMIN, SYS_TIME]
