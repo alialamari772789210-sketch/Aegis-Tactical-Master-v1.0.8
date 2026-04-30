@@ -3,84 +3,68 @@ name: Aegis Tactical Master v7.2.6 - Autonomous Final Build
 on:
   push:
     branches: [ "main", "Master", "master" ]
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   finalize_build_sequence:
     runs-on: ubuntu-latest
     permissions:
-      contents: write 
+      contents: write
 
     steps:
-      - name: 📥 Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: ☕ Set up JDK 17 (Aegis Standard)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: gradle
 
-      - name: 🛡️ Grant Execute Permission
+      - name: Grant Execute Permission
         run: |
           if [ -f gradlew ]; then
             chmod +x gradlew
           fi
 
-      # إعداد Gradle (اختياري لكن أبقيناه كما هو)
-      - name: 🛠️ Setup Gradle (Autonomous Engine)
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.5
           generate-job-summary: true
 
-      # ✅ تم الإصلاح هنا (استخدام gradlew بدل gradle)
-      - name: 🏗️ Execute Master Build (Target: THE_SYNTHETIC_SENTINEL)
+      # ✅ إصلاح أمر البناء
+      - name: Build APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: 🆔 Rename and Verify APK
+      - name: Rename and Verify APK
         run: |
           APK_PATH=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ]; then
-            echo "❌ Error: APK file not found!"
+            echo "Error: APK file not found!"
             exit 1
           fi
           mv "$APK_PATH" Aegis_Tactical_v7.2.6_Master_Final.apk
           echo "FINAL_APK=Aegis_Tactical_v7.2.6_Master_Final.apk" >> $GITHUB_ENV
 
-      - name: 💾 Upload Internal Artifact
+      - name: Upload Internal Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Aegis-Tactical-Master-Final
           path: ${{ env.FINAL_APK }}
 
-      # ✅ تم إصلاح شرط if هنا
-      - name: 🚀 Global Strategic Release
+      # ✅ إصلاح شرط if + إزالة مشكلة YAML
+      - name: Release APK
         uses: softprops/action-gh-release@v1
         if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Master' || github.ref == 'refs/heads/master' }}
         with:
           files: ${{ env.FINAL_APK }}
           tag_name: v7.2.6-Final
-          name: Aegis Tactical v7.2.6 "Master Final"
-          body: |
-            ### 🎖️ Aegis Tactical v7.2.6 - Master Autonomous Build
-            **Architect:** Colonel Ali Al-Ammari
-            **Codename:** THE_SYNTHETIC_SENTINEL
-            **Status:** 100% Autonomous & Operational
-            
-            **الخدمات المحقونة (Core Services):**
-            - **aegis_core:** Kernel-Node v7.2.6 (Global Mode).
-            - **drone_fusion_bridge:** Fusion-v2 (NET_ADMIN Enabled).
-            
-            **القدرات التشغيلية:**
-            - استقلالية سيادية مطلقة (No External Hardware).
-            - محرك ذكاء اصطناعي v7.0 مدمج.
-            - ارتباط مشفر بالأقمار الصناعية (Satellite Uplink Encrypted).
-            - وضع الدقة العالية (PRECISION_MODE: HIGH_THREAD).
-            - حماية سيادية: RSA-4096 & AES-256 GCM.
+          name: Aegis Tactical v7.2.6 Master Final
+          body: "Aegis Tactical build"
           draft: false
           prerelease: false
         env:
