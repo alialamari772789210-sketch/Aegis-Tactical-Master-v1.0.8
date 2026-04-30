@@ -38,7 +38,7 @@ jobs:
 
       # ✅ إصلاح أمر البناء
       - name: Build APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: gradle assembleDebug
 
       - name: Rename and Verify APK
         run: |
