@@ -4,24 +4,22 @@ plugins {
 }
 
 android {
-    // الهوية البرمجية الموحدة لمنظومة AEGIS - العقيد علي العماري
-    namespace 'com.jamesfirstok.aegis' 
+    namespace 'com.jamesfirstok.aegis'
     compileSdk 34
 
     defaultConfig {
         applicationId "com.jamesfirstok.aegis"
-        minSdk 24 
+        minSdk 24
         targetSdk 34
         versionCode 8
         versionName "1.0.8-Sovereign-Master"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        
+
         vectorDrawables {
             useSupportLibrary true
         }
 
-        // إعدادات الربط مع النواة الصلبة (C++) لضمان سرعة المعالجة الراديوية
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++17"
@@ -31,14 +29,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+        }
         release {
-            // بروتوكول التخفي الرقمي: تشفير الكود وتصغير الحجم لمنع التجسس البرمجي
-            minifyEnabled true 
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            minifyEnabled false // 🔥 أوقفنا Proguard مؤقتاً لضمان نجاح البناء
+            // يمكن تفعيله لاحقاً
         }
     }
 
-    // ربط ملف CMakeLists.txt (الذي يحتوي على إعدادات Aegis Security Lib)
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
@@ -57,7 +56,7 @@ android {
 
     buildFeatures {
         compose true
-        viewBinding true // مضاف لدعم الربط مع واجهة XML إذا لزم الأمر
+        viewBinding true // نحافظ عليه
     }
 
     composeOptions {
@@ -66,29 +65,32 @@ android {
 }
 
 dependencies {
-    // 1. النواة الأساسية ودعم بيئة الأندرويد الميدانية
+
+    // 🔹 Core
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-    implementation 'androidx.activity:activity-compose:1.8.2'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    // 2. واجهة المستخدم التكتيكية (Jetpack Compose) للعرض الراداري
+    // 🔹 Compose
     implementation platform('androidx.compose:compose-bom:2023.08.00')
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.ui:ui-graphics'
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.activity:activity-compose:1.8.2'
 
-    // 3. محرك الذكاء الاصطناعي السيادي (تحليل الأنماط والتهديدات)
+    // 🔹 AI
     implementation 'org.tensorflow:tensorflow-lite:2.12.0'
 
-    // 4. ترسانة الرصد والاتصال التكتيكي (SIGINT & Drone Link)
-    implementation 'com.github.mik3y:usb-serial-for-android:3.7.0' // للربط مع أجهزة الرصد الخارجية
-    implementation 'org.mavlink:mavlink-sdk:2.4.1'               // بروتوكول السيطرة على الدرونز
-    implementation 'com.google.android.gms:play-services-maps:18.2.0' // الخرائط العسكرية
-    implementation 'com.squareup.retrofit2:retrofit:2.9.0'      // الاتصال المؤمن بالسيرفرات السيادية
-    
-    // 5. حماية البيانات المتقدمة
+    // 🔹 Networking
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+
+    // 🔹 Security
     implementation "androidx.security:security-crypto:1.1.0-alpha06"
+
+    // 🟡 مؤقتاً نوقف المكتبات الخطيرة (نرجعها لاحقاً بشكل احترافي)
+    // implementation 'org.mavlink:mavlink-sdk:2.4.1'
+    // implementation 'com.github.mik3y:usb-serial-for-android:3.7.0'
+    // implementation 'com.google.android.gms:play-services-maps:18.2.0'
 }
