@@ -1,71 +1,116 @@
-name: Aegis Tactical Master v7.2.6 - Autonomous Final Build
+name: Aegis Tactical Master Build
 
 on:
   push:
-    branches: [ "main", "Master", "master" ]
+    branches:
+      - Master
+      - master
+      - main
+
   workflow_dispatch:
 
 jobs:
-  finalize_build_sequence:
+  build-apk:
+    name: Build AEGIS APK
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set up JDK 17
+      # =========================
+      # 1. تحميل المستودع
+      # =========================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # =========================
+      # 2. تثبيت Java 17
+      # =========================
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: 17
           cache: gradle
 
+      # =========================
+      # 3. تثبيت Android NDK
+      # =========================
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+
+      # =========================
+      # 4. إعطاء صلاحيات التنفيذ
+      # =========================
       - name: Grant Execute Permission
         run: |
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-          fi
+          chmod +x gradlew || true
 
+      # =========================
+      # 5. تثبيت Gradle
+      # =========================
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.5
-          generate-job-summary: true
 
-      # ✅ إصلاح أمر البناء
-      - name: Build APK
-        run: 
-run: gradle assembleDebug --stacktrace
-      - name: Rename and Verify APK
+      # =========================
+      # 6. تنظيف المشروع
+      # =========================
+      - name: Clean Project
+        run: gradle clean
+
+      # =========================
+      # 7. بناء APK
+      # =========================
+      - name: Build Debug APK
+        run: gradle assembleDebug --stacktrace --info
+
+      # =========================
+      # 8. التحقق من إنشاء APK
+      # =========================
+      - name: Verify APK
         run: |
-          APK_PATH=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
+          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+
           if [ -z "$APK_PATH" ]; then
-            echo "Error: APK file not found!"
+            echo "❌ APK NOT FOUND!"
             exit 1
           fi
-          mv "$APK_PATH" Aegis_Tactical_v7.2.6_Master_Final.apk
-          echo "FINAL_APK=Aegis_Tactical_v7.2.6_Master_Final.apk" >> $GITHUB_ENV
 
-      - name: Upload Internal Artifact
+          echo "✅ APK FOUND:"
+          echo $APK_PATH
+
+      # =========================
+      # 9. إعادة تسمية APK
+      # =========================
+      - name: Rename APK
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+
+          mv "$APK_PATH" Aegis-Tactical-v1.0.8.apk
+
+      # =========================
+      # 10. رفع APK كـ Artifact
+      # =========================
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Aegis-Tactical-Master-Final
-          path: ${{ env.FINAL_APK }}
+          name: Aegis-Tactical-APK
+          path: Aegis-Tactical-v1.0.8.apk
 
-      # ✅ إصلاح شرط if + إزالة مشكلة YAML
-      - name: Release APK
-        uses: softprops/action-gh-release@v1
-        if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Master' || github.ref == 'refs/heads/master' }}
+      # =========================
+      # 11. إنشاء Release تلقائي
+      # =========================
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/Master' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          files: ${{ env.FINAL_APK }}
-          tag_name: v7.2.6-Final
-          name: Aegis Tactical v7.2.6 Master Final
-          body: "Aegis Tactical build"
-          draft: false
-          prerelease: false
+          tag_name: v1.0.8
+          name: Aegis Tactical v1.0.8
+          files: Aegis-Tactical-v1.0.8.apk
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
