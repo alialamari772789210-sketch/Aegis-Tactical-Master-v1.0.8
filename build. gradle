@@ -1,32 +1,20 @@
 // AEGIS TACTICAL PROJECT - ROOT BUILD FILE
-// ملف القيادة العليا - لتنسيق الإضافات البرمجية للمشروع بالكامل
 
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        // تحديد نسخة أداة بناء الأندرويد (تأكد أنها متوافقة مع نسخة Android Studio لديك)
-        classpath 'com.android.tools.build:gradle:8.2.0'
-        // ربط لغة Kotlin بالمنظومة
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0"
-    }
+plugins {
+    id 'com.android.application' version '8.2.2' apply false
+    id 'org.jetbrains.kotlin.android' version '1.9.10' apply false
 }
 
 allprojects {
     repositories {
         google()
         mavenCentral()
-        
-        // إعداد استراتيجي: إضافة مستودع JitPack
-        // هذا المستودع ضروري جداً لجلب مكتبات الرصد الخارجي مثل (USB-Serial) 
-        // ومكتبات التحكم في الدرونز التي لا تتوفر في المستودعات العادية
+
+        // مستودع JitPack للمكتبات الخارجية
         maven { url 'https://jitpack.io' }
     }
 }
 
-// مهمة اختيارية لضمان تنظيف الملفات المؤقتة عند إعادة البناء
 tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }
