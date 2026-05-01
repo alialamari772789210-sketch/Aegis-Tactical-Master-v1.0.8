@@ -4,15 +4,22 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+
+    plugins {
+        id 'com.android.application' version '8.2.0'
+        id 'org.jetbrains.kotlin.android' version '1.9.0'
+    }
 }
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
 }
 
-rootProject.name = "Aegis Tactical"
+rootProject.name = "Aegis-Tactical-Master-v1.0.8"
 include ':app'
