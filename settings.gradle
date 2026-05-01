@@ -4,11 +4,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
-
-    plugins {
-        id 'com.android.application' version '8.2.0'
-        id 'org.jetbrains.kotlin.android' version '1.9.0'
-    }
 }
 
 dependencyResolutionManagement {
@@ -21,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Aegis-Tactical-Master-v1.0.8"
+rootProject.name = "Aegis-Tactical-Master"
 include ':app'
