@@ -1,0 +1,68 @@
+name: Aegis Tactical Master Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build AEGIS APK
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+
+      # =========================
+      # 1. تحميل المشروع
+      # =========================
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # =========================
+      # 2. تثبيت Java
+      # =========================
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # =========================
+      # 3. تثبيت Gradle
+      # =========================
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      # =========================
+      # 4. إعطاء صلاحية التنفيذ
+      # =========================
+      - name: Grant Execute Permission
+        run: chmod +x gradlew
+
+      # =========================
+      # 5. بناء APK
+      # =========================
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      # =========================
+      # 6. رفع APK
+      # =========================
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AEGIS-APK
+          path: app/build/outputs/apk/debug/*.apk
+
+      # =========================
+      # 7. إنشاء Release تلقائي
+      # =========================
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.${{ github.run_number }}
+          name: AEGIS Build v1.${{ github.run_number }}
+          files: app/build/outputs/apk/debug/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
