@@ -1,53 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- صلاحيات الموقع -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    
+
+    <!-- الشبكات -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <!-- إضافات الكود الثاني -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <!-- البلوتوث -->
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="false" />
 
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <!-- الحساسات -->
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+
+    <!-- الطاقة -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- الاهتزاز -->
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.CAMERA" /> 
+
+    <!-- الكاميرا -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- الصوت -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    
+
+    <!-- الإشعارات -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- الخدمات -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+    <!-- مضافة من الكود الثاني -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
     <application
-        android:label="Aegis Tactical v1.0.8-Sovereign"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar"
-        android:icon="@mipmap/ic_launcher"
-        android:hardwareAccelerated="true"
         android:allowBackup="false"
         android:fullBackupContent="false"
+        android:hardwareAccelerated="true"
+
+        android:label="Aegis Tactical v1.0.8-Sovereign"
+
+        <!-- تم إصلاح خطأ ic_launcher -->
+        android:icon="@android:drawable/ic_menu_compass"
+
+        <!-- ثيم مستقر ومتوافق -->
+        android:theme="@style/Theme.Aegis"
+
         tools:targetApi="34">
 
-        <activity 
-            android:name=".MainActivity" 
+        <activity
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize|keyboardHidden">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
-        <service 
-            android:name=".service.AegisService" 
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
+        <service
+            android:name=".service.AegisService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
     </application>
+
 </manifest>
