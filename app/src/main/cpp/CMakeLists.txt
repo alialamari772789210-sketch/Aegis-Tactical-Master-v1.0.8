@@ -8,11 +8,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # بناء المكتبة الأمنية المحصنة (النواة الصلبة)
-# هذه المكتبة ستكون بصيغة .so داخل الـ APK لزيادة صعوبة اختراقها
+# تم إدراج جميع الملفات المصدرية (native-lib و aegis-security-lib) لضمان اكتمال الربط البرمجي
 add_library( 
              aegis-security-lib
              SHARED
              native-lib.cpp
+             aegis-security-lib.cpp 
            )
 
 # استدعاء مكتبات النظام الأساسية للتعامل مع السجلات والعتاد
