@@ -4,28 +4,19 @@ plugins {
 }
 
 android {
-
-    // الهوية البرمجية الموحدة لمنظومة AEGIS
     namespace 'com.jamesfirstok.aegis'
-    compileSdk 34
+    compileSdk 34 // يمكن البقاء على 34 للترجمة ولكن الهدف يجب أن يقل
 
     defaultConfig {
-
         applicationId "com.jamesfirstok.aegis"
-
         minSdk 24
-        targetSdk 34
+        targetSdk 31 // تم التغيير من 34 إلى 31 ليتوافق مع أندرويد 12
 
         versionCode 8
         versionName "1.0.8-Sovereign-Master"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-        vectorDrawables {
-            useSupportLibrary true
-        }
-
-        // إعدادات الربط مع النواة الصلبة C++
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++17"
@@ -35,21 +26,18 @@ android {
     }
 
     buildTypes {
-
         release {
-
-            // بروتوكول التخفي الرقمي
-            minifyEnabled true
-
-            proguardFiles getDefaultProguardFile(
-                    'proguard-android-optimize.txt'
-            ), 'proguard-rules.pro'
+            // قم بتعطيل المينيفاي حالياً لضمان عدم حذف دوال الـ C++ والـ JNI
+            minifyEnabled false 
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
         }
     }
 
-    // ربط CMake
     externalNativeBuild {
-
         cmake {
             path "src/main/cpp/CMakeLists.txt"
             version "3.22.1"
@@ -76,31 +64,20 @@ android {
 }
 
 dependencies {
-
-    // النواة الأساسية
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'androidx.activity:activity-compose:1.8.2'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
-    // Jetpack Compose
     implementation platform('androidx.compose:compose-bom:2023.08.00')
-
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.ui:ui-graphics'
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3'
-
-    // TensorFlow Lite
     implementation 'org.tensorflow:tensorflow-lite:2.12.0'
-
-    // الاتصالات والرصد
     implementation 'com.github.mik3y:usb-serial-for-android:3.7.0'
     implementation 'org.mavlink:mavlink-sdk:2.4.1'
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
-
-    // الحماية
     implementation "androidx.security:security-crypto:1.1.0-alpha06"
 }
