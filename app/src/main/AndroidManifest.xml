@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.jamesfirstok.aegis"> <!-- تأكد من وجود اسم الحزمة هنا -->
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -30,6 +31,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- تم إبقاء هذه الصلاحيات مع تقييدها داخلياً في الكود لتناسب أندرويد 12 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
@@ -45,7 +47,8 @@
         android:label="Aegis Tactical v1.0.8-Sovereign"
         android:icon="@android:drawable/ic_menu_compass"
         android:theme="@style/Theme.Aegis"
-        tools:targetApi="34">
+        android:extractNativeLibs="true" 
+        tools:targetApi="34"> <!-- أضفنا extractNativeLibs لضمان فك ضغط مكتبات الـ C++ -->
 
         <activity
             android:name=".MainActivity"
@@ -59,10 +62,12 @@
             </intent-filter>
         </activity>
 
+        <!-- تصحيح: جعل أنواع الخدمات متوافقة مع الأنظمة الأقدم -->
         <service
             android:name=".service.AegisService"
             android:exported="false"
-            android:foregroundServiceType="dataSync|location|connectedDevice" />
+            android:foregroundServiceType="dataSync|location|connectedDevice"
+            tools:node="replace" />
 
         <service
             android:name=".service.SatelliteUplinkService"
