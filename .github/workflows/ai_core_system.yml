@@ -2,7 +2,7 @@ name: AI Autonomous Master Core
 on:
   push:
     branches:
-      - Master  # تم التعديل ليتوافق مع اسم فرعك الرئيسي
+      - Master
 
 jobs:
   ai-process:
@@ -19,7 +19,9 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
-        run: pip install openai==0.28
+        run: |
+          pip uninstall -y openai
+          pip install openai>=1.0.0
 
       - name: Run AI Debugger & Developer
         env:
@@ -31,12 +33,6 @@ jobs:
           git config --global user.name "AI-Master-Bot"
           git config --global user.email "bot@ai-master.com"
           git add .
-          git       - name: Commit and Push Improvements
-        run: |
-          git config --global user.name "AI-Master-Bot"
-          git config --global user.email "bot@ai-master.com"
-          git add .
-          git commit -m "🤖 [AI Core] تم فحص وتطوير الأكواد وتصحيح الأخطاء تلقائياً" || echo "لا توجد تغييرات للرفع"
-          # التعديل الجديد: سحب التغييرات أولاً لتجنب الرفض
+          git commit -m "🤖 [AI Core] تحويل المنظومة إلى وضع العمليات الحقيقي" || echo "No changes to commit"
           git pull origin Master --rebase
           git push origin Master
