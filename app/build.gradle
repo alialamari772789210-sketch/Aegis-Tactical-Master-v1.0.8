@@ -5,15 +5,15 @@ plugins {
 
 android {
     namespace 'com.jamesfirstok.aegis'
-    compileSdk 34 // يمكن البقاء على 34 للترجمة ولكن الهدف يجب أن يقل
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.jamesfirstok.aegis"
         minSdk 24
-        targetSdk 31 // تم التغيير من 34 إلى 31 ليتوافق مع أندرويد 12
+        targetSdk 31 // متوافق مع أندرويد 12 للوصول العميق للحساسات
 
         versionCode 8
-        versionName "1.0.8-Sovereign-Master"
+        versionName "1.0.8-Sovereign-Master-Operational"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -23,24 +23,24 @@ android {
                 abiFilters "armeabi-v7a", "arm64-v8a"
             }
         }
+        
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a"
+        }
     }
 
     buildTypes {
         release {
-            // قم بتعطيل المينيفاي حالياً لضمان عدم حذف دوال الـ C++ والـ JNI
             minifyEnabled false 
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            minifyEnabled false
         }
     }
 
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.22.1"
+            version "3.22.1" // متطابق مع ملف CMakeLists
         }
     }
 
@@ -64,20 +64,28 @@ android {
 }
 
 dependencies {
+    // المكتبات الأساسية
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'androidx.activity:activity-compose:1.8.2'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    
+    // واجهة المستخدم التكتيكية
     implementation platform('androidx.compose:compose-bom:2023.08.00')
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.ui:ui-graphics'
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3'
-    implementation 'org.tensorflow:tensorflow-lite:2.12.0'
-    implementation 'com.github.mik3y:usb-serial-for-android:3.7.0'
-    implementation 'org.mavlink:mavlink-sdk:2.4.1'
+    
+    // المكتبات العملياتية الحقيقية (الحقن الجديد)
+    implementation 'com.github.wendykierp:JTransforms:3.1'            // معالجة إشارات الرادار
+    implementation 'com.google.android.gms:play-services-location:21.0.1' // بيانات الأقمار الصناعية الخام
+    implementation 'com.github.mik3y:usb-serial-for-android:3.7.0'   // دعم الراديو SDR
+    implementation 'org.tensorflow:tensorflow-lite:2.12.0'           // تحليل أنماط التشويش بالذكاء الاصطناعي
+    implementation 'org.mavlink:mavlink-sdk:2.4.1'                   // بروتوكول التحكم بالمسيرات
+    implementation "androidx.security:security-crypto:1.1.0-alpha06" // تشفير البيانات العسكري
+    
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
-    implementation "androidx.security:security-crypto:1.1.0-alpha06"
 }
