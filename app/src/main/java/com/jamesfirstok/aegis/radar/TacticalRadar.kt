@@ -1,18 +1,15 @@
 package com.jamesfirstok.aegis.radar
 
-import android.location.Location
-
 class TacticalRadar {
-    private val detectionRange = 5000.0 // مدى الرصد بالامتار (5 كم)
+    init {
+        System.loadLibrary("aegis-core") // تحميل المكتبة الحقيقية
+    }
 
-    fun calculateTargetVector(userLoc: Location, targetLoc: Location): Pair<Double, Double> {
-        val distance = userLoc.distanceTo(targetLoc).toDouble()
-        val bearing = userLoc.bearingTo(targetLoc).toDouble()
-        
-        return if (distance <= detectionRange) {
-            Pair(distance, bearing)
-        } else {
-            Pair(0.0, 0.0) // خارج النطاق
-        }
+    // استدعاء المعالج العملياتي الحقيقي
+    external fun processSignal(rawSignal: DoubleArray): DoubleArray
+
+    fun startSurveillance(buffer: DoubleArray): DoubleArray {
+        // يتم تمرير البيانات الخام من الهوائيات (WiFi/SDR) هنا
+        return processSignal(buffer)
     }
 }
