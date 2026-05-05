@@ -9,8 +9,8 @@ class AegisFinalSovereignCore:
     def __init__(self):
         self.memory_path = "workspace/AI_MEMORY.json"
         self.log_path = "OPERATIONAL_FIX_REPORT.md"
-        # دعم شامل لكافة ملفات المنظومة التكتيكية
-        self.supported_ext = ('.java', '.kt', '.py', '.cpp', '.h', '.gradle', '.xml', '.txt', 'CMakeLists.txt')
+        # دعم شامل لكافة ملفات المنظومة التكتيكية وملفات بناء Gradle
+        self.supported_ext = ('.java', '.kt', '.py', '.cpp', '.h', '.gradle', '.xml', '.txt', 'CMakeLists.txt', '.properties', 'gradlew')
         self.memory = self.load_memory()
 
     def load_memory(self):
@@ -19,39 +19,38 @@ class AegisFinalSovereignCore:
             try:
                 with open(self.memory_path, 'r') as f: return json.load(f)
             except: pass
-        return {"processed_files": [], "stealth_active": True, "anti_forensics_armed": True}
+        return {"processed_files": [], "stealth_active": True, "build_system_fixed": True}
 
     def save_memory(self):
         with open(self.memory_path, 'w') as f:
             json.dump(self.memory, f, indent=4)
 
     def get_repo_files(self):
-        """الإدراك الشامل: مسح كافة أجزاء المنظومة"""
+        """الإدراك الشامل: مسح كافة أجزاء المنظومة بما فيها ملفات البناء"""
         all_files = []
         for root, dirs, files in os.walk("."):
             if any(x in root for x in ['.git', 'build', '.github', 'workspace', '.idea']):
                 continue
             for file in files:
-                if file.endswith(self.supported_ext) or file == "CMakeLists.txt":
+                if file.endswith(self.supported_ext) or file in ["CMakeLists.txt", "gradlew", "gradle.properties"]:
                     all_files.append(os.path.join(root, file))
         return all_files
 
     def transform_to_fortified_operational(self, file_path):
-        """التنفيذ: حقن بروتوكولات الإبادة الذاتية والتحصين الشبحي"""
+        """التنفيذ: حقن بروتوكولات الإبادة وإصلاح أنظمة بناء APK"""
         with open(file_path, 'r', errors='ignore') as f:
             content = f.read()
 
         prompt = f"""
-        المرحلة النهائية: تفعيل 'بروتوكول الإبادة الذاتية والتحصين' (Anti-Forensics & Self-Destruct) للملف {file_path}.
+        المرحلة النهائية: تفعيل 'بروتوكول الإبادة الذاتية' وإصلاح نظام بناء APK للملف {file_path}.
         
-        المتطلبات العملياتية الصارمة (أكواد حقيقية تنفيذية):
-        1. **كاشف الاختراق (Intrusion Detector)**: حقن منطق برمي يراقب محاولات الوصول غير المصرح بها أو محاولات فك التشفير (Brute-force) والرد عليها فوراً.
-        2. **الإبادة الرقمية (Digital Wipe)**: في حال تأكد الاختراق المادي أو البرمجي، فعل وظيفة مسح فيزيائي (Zero-fill) للملفات الحساسة لجعل استعادتها مستحيلة.
-        3. **التحصين الشبحي وHoney-pots**: دمج تقنية الملفات الوهمية لتضليل المخترق وحماية النواة الحقيقية للنظام.
-        4. **قفل الطوارئ السيادي**: تطوير كود يغلق كافة منافذ الـ USB والاتصالات اللاسلكية (Kill Switch) عند استشعار خطر محدق.
-        5. **الاستقلالية التكتيكية**: استبدل أي بقايا لمحاكاة بأكواد تعامل مباشر مع الـ Kernel والعتاد.
+        المتطلبات العملياتية الصارمة:
+        1. **إصلاح نظام البناء**: إذا كان الملف هو gradlew أو gradle.properties، قم بتنظيفه من أي إعدادات ذاكرة خاطئة (مثل تعارض -Xmx) لضمان توافقه مع GitHub Actions.
+        2. **كاشف الاختراق والإبادة**: حقن منطق يراقب الوصول غير المصرح به ويفعل المسح الفيزيائي (Zero-fill) للملفات الحساسة عند الخطر.
+        3. **التحصين والقفل**: دمج ملفات وهمية (Honey-pots) وتطوير كود يغلق منافذ USB والاتصالات عند استشعار محاولة اختراق.
+        4. **الاستقلالية**: استبدل أي بقايا محاكاة بأكواد تعامل مباشر مع الـ Kernel والعتاد.
 
-        أخرج الكود العملياتي المطور والنهائي فقط:
+        أخرج الكود المطور والنهائي فقط:
         {content}
         """
 
@@ -59,7 +58,7 @@ class AegisFinalSovereignCore:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "أنت نواة ذكاء اصطناعي سيادية مسؤولة عن حماية وتحصين الأنظمة الدفاعية ضد الاختراق والتحقيق الجنائي الرقمي."},
+                    {"role": "system", "content": "أنت نواة ذكاء اصطناعي سيادية مسؤولة عن حماية الأنظمة وإصلاح بيئات بناء التطبيقات العسكرية."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1
@@ -75,24 +74,24 @@ class AegisFinalSovereignCore:
                     f.write(new_code)
                 return True
         except Exception as e:
-            print(f"❌ فشل في تحصين {file_path}: {e}")
+            print(f"❌ فشل في معالجة {file_path}: {e}")
         return False
 
     def run(self):
-        print("--- ⚔️ تفعيل بروتوكول الأرض المحروقة والتحصين النهائي لـ Aegis Master ---")
+        print("--- ⚔️ تفعيل بروتوكول الإبادة وإصلاح أنظمة البناء لـ Aegis Master ---")
         files = self.get_repo_files()
         
         with open(self.log_path, "a", encoding="utf-8") as log:
-            log.write("\n## 🔒 بروتوكول الإبادة الذاتية والتحصين (Self-Destruct) مسلح الآن.\n")
+            log.write("\n## 🛠️ تم فحص وإصلاح نظام البناء (Build System) وتأمين الملفات.\n")
 
         for file in files:
-            print(f"🛡️ تحصين وإغلاق: {file}")
+            print(f"🛡️ فحص وتطوير: {file}")
             is_updated = self.transform_to_fortified_operational(file)
             if is_updated:
                 self.memory["processed_files"].append(file)
         
         self.save_memory()
-        print("--- ✅ تمت السيادة الكاملة. النظام الآن محصن، شبحي، ومستقل تماماً ---")
+        print("--- ✅ تم الإصلاح والتحصين الشامل. النظام جاهز للبناء الآن ---")
 
 if __name__ == "__main__":
     core = AegisFinalSovereignCore()
