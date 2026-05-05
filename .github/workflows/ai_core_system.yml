@@ -18,11 +18,10 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install AI Dependencies
+      - name: Install Dependencies
         run: |
           pip uninstall -y openai
           pip install openai>=1.0.0
-
       - name: Run AI Debugger & Developer
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -36,24 +35,3 @@ jobs:
           git commit -m "🤖 [AI Core] تحويل المنظومة إلى وضع العمليات الحقيقي" || echo "No changes to commit"
           git pull origin Master --rebase
           git push origin Master
-
-      # --- إضافة مرحلة بناء الـ APK العملياتي ---
-      
-      - name: set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build Tactical APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload Sovereign APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Aegis-Operational-Master-v1.0.9
-          path: app/build/outputs/apk/debug/app-debug.apk
