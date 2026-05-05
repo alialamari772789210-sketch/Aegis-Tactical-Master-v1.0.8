@@ -1,42 +1,36 @@
-cmake_minimum_required(VERSION 3.10.2)
+# تحديد الحد الأدنى لإصدار CMake المطلوبة لبناء النظام التكتيكي
+cmake_minimum_required(VERSION 3.18.1)
 
-# مشروع الحماية السيادية - AEGIS TACTICAL
-project("Aegis_Sovereign_Security")
+# تعريف اسم المشروع البرمجي الأساسي
+project("aegis-core")
 
-# إعدادات المعالجة التكتيكية (C++17) لضمان أقصى سرعة في تحليل الإشارات
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# إضافة ملفات المصدر الحقيقية (Native C++) التي ستقوم بالعمليات القتالية
+# يمكنك إضافة أي ملفات .cpp إضافية هنا ليتم دمجها في النواة
+add_library(
+        aegis-core
+        SHARED
+        AegisCore.cpp
+        drone_fusion_bridge.cpp # جسر الربط مع أنظمة المسيرات
+)
 
-# بناء المكتبة الأمنية المحصنة (النواة الصلبة)
-# تم إدراج جميع الملفات المصدرية (native-lib و aegis-security-lib) لضمان اكتمال الربط البرمجي
-add_library( 
-             aegis-security-lib
-             SHARED
-             native-lib.cpp
-             aegis-security-lib.cpp 
-           )
+# البحث عن المكتبات الأساسية في نظام أندرويد لربطها بالرادار
+# مكتبة log: لتسجيل العمليات التكتيكية في السجل
+find_library(
+        log-lib
+        log
+)
 
-# استدعاء مكتبات النظام الأساسية للتعامل مع السجلات والعتاد
-find_library( log-lib log )
-find_library( android-lib android )
-find_library( jnigraphics-lib jnigraphics ) # لمعالجة صور الرادار بذكاء
+# ربط المكتبة التي أنشأناها بمكتبات النظام
+# هذا يسمح لـ AegisCore بالوصول إلى موارد النظام العميقة
+target_link_libraries(
+        aegis-core
+        ${log-lib}
+)
 
-# الربط التكاملي بين النواة والعتاد لضمان تدفق البيانات
-target_link_libraries( 
-                       aegis-security-lib
-                       ${log-lib}
-                       ${android-lib}
-                       ${jnigraphics-lib}
-                     )
+# تحسين أداء الكود البرمجي (Optimization)
+# نستخدم -O3 لضمان أعلى سرعة معالجة ممكنة لإشارات الرادار والترددات
+set_target_properties(aegis-core PROPERTIES 
+                     CXX_STANDARD 17 
+                     CXX_STANDARD_REQUIRED ON)
 
-# بروتوكول التخفي الرقمي (Anti-Reverse Engineering)
-# إخفاء الرموز البرمجية لمنع الهندسة العكسية من قبل أي طرف خارجي
-set_target_properties(aegis-security-lib PROPERTIES 
-                      CXX_VISIBILITY_PRESET hidden
-                      VISIBILITY_INLINES_HIDDEN ON
-                      POSITION_INDEPENDENT_CODE ON)
-
-# إعدادات تحسين الأداء الميداني (Optimization for Release)
-if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fomit-frame-pointer -fdata-sections -ffunction-sections")
-endif()
+target_compile_options(aegis-core PRIVATE -O3 -ffast-math)
