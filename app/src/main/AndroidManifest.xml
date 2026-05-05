@@ -1,87 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.jamesfirstok.aegis"> <!-- تأكد من وجود اسم الحزمة هنا -->
+<manifest xmlns:android="http://android.com"
+    package="com.jamesfirstok.aegis">
 
+    <!-- صلاحيات الرادار التكتيكي والارتباط اللاسلكي العميق -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    
+    <!-- الوصول لبيانات الأقمار الصناعية الخام (Raw GNSS) -->
+    <uses-permission android:name="android.permission.LOCATION_HARDWARE" />
+    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" />
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
-
-    <uses-feature
-        android:name="android.hardware.bluetooth_le"
-        android:required="false" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- عمليات الراديو والتشويش والتحليل الطيفي (SDR) -->
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
-    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- صلاحيات السيطرة على العتاد والتحييد الدفاعي -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" /> <!-- لتحويل المكبرات لمصدر موجات فوق صوتية -->
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!-- تم إبقاء هذه الصلاحيات مع تقييدها داخلياً في الكود لتناسب أندرويد 12 -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
-
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    
+    <!-- صلاحيات متقدمة للعمل المستقل (تتطلب Root في بعض العمليات) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
     <application
         android:name=".AegisApplication"
-        android:allowBackup="false"
-        android:fullBackupContent="false"
-        android:hardwareAccelerated="true"
-        android:label="Aegis Tactical v1.0.8-Sovereign"
-        android:icon="@android:drawable/ic_menu_compass"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Aegis Tactical Master"
         android:theme="@style/Theme.Aegis"
-        android:extractNativeLibs="true" 
-        tools:targetApi="34"> <!-- أضفنا extractNativeLibs لضمان فك ضغط مكتبات الـ C++ -->
+        android:requestLegacyExternalStorage="true">
+
+        <!-- الخدمة العملياتية المستقلة (تعمل في الخلفية دائماً) -->
+        <service
+            android:name=".service.AegisService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location|dataSync|connectedDevice" />
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
-            android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|keyboardHidden">
+            android:theme="@style/Theme.Aegis.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- تصحيح: جعل أنواع الخدمات متوافقة مع الأنظمة الأقدم -->
-        <service
-            android:name=".service.AegisService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync|location|connectedDevice"
-            tools:node="replace" />
-
-        <service
-            android:name=".service.SatelliteUplinkService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-
-        <receiver
-            android:name=".service.AlertManager"
-            android:enabled="true"
-            android:exported="false">
+        <!-- مستقبل الأوامر التكتيكية عند بدء التشغيل -->
+        <receiver android:name=".service.AlertManager" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-
     </application>
+
 </manifest>
