@@ -1,0 +1,35 @@
+name: AI Autonomous Master Core
+on:
+  push:
+    branches:
+      - Master  # تم التعديل ليتوافق مع اسم فرعك الرئيسي
+
+jobs:
+  ai-process:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: pip install openai==0.28
+
+      - name: Run AI Debugger & Developer
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python src/core.py
+
+      - name: Commit and Push Improvements
+        run: |
+          git config --global user.name "AI-Master-Bot"
+          git config --global user.email "bot@ai-master.com"
+          git add .
+          git commit -m "🤖 [AI Core] تم فحص وتطوير الأكواد وتصحيح الأخطاء تلقائياً" || echo "لا توجد تغييرات للرفع"
+          git push origin Master
