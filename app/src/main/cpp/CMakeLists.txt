@@ -1,36 +1,32 @@
-# تحديد الحد الأدنى لإصدار CMake المطلوبة لبناء النظام التكتيكي
-cmake_minimum_required(VERSION 3.18.1)
+# تحديث الإصدار ليتطابق تماماً مع ملف build.gradle الخاص بك
+cmake_minimum_required(VERSION 3.22.1)
 
-# تعريف اسم المشروع البرمجي الأساسي
 project("aegis-core")
 
-# إضافة ملفات المصدر الحقيقية (Native C++) التي ستقوم بالعمليات القتالية
-# يمكنك إضافة أي ملفات .cpp إضافية هنا ليتم دمجها في النواة
+# إضافة ملفات المصدر للعمليات الحقيقية
 add_library(
         aegis-core
         SHARED
         AegisCore.cpp
-        drone_fusion_bridge.cpp # جسر الربط مع أنظمة المسيرات
+        drone_fusion_bridge.cpp
 )
 
-# البحث عن المكتبات الأساسية في نظام أندرويد لربطها بالرادار
-# مكتبة log: لتسجيل العمليات التكتيكية في السجل
+# ربط مكتبة السجلات (Logs) لمراقبة أداء الرادار
 find_library(
         log-lib
         log
 )
 
-# ربط المكتبة التي أنشأناها بمكتبات النظام
-# هذا يسمح لـ AegisCore بالوصول إلى موارد النظام العميقة
+# ربط المكتبة بالموارد الأساسية
 target_link_libraries(
         aegis-core
         ${log-lib}
 )
 
-# تحسين أداء الكود البرمجي (Optimization)
-# نستخدم -O3 لضمان أعلى سرعة معالجة ممكنة لإشارات الرادار والترددات
+# إعدادات معيار C++17 والتحسين القتالي (Optimization)
 set_target_properties(aegis-core PROPERTIES 
                      CXX_STANDARD 17 
                      CXX_STANDARD_REQUIRED ON)
 
-target_compile_options(aegis-core PRIVATE -O3 -ffast-math)
+# تفعيل التحسين الأقصى للمعالج لضمان استجابة الرادار في الوقت الحقيقي
+target_compile_options(aegis-core PRIVATE -O3 -ffast-math -DOPERATION_MODE=1)
