@@ -31,5 +31,12 @@ jobs:
           git config --global user.name "AI-Master-Bot"
           git config --global user.email "bot@ai-master.com"
           git add .
+          git       - name: Commit and Push Improvements
+        run: |
+          git config --global user.name "AI-Master-Bot"
+          git config --global user.email "bot@ai-master.com"
+          git add .
           git commit -m "🤖 [AI Core] تم فحص وتطوير الأكواد وتصحيح الأخطاء تلقائياً" || echo "لا توجد تغييرات للرفع"
+          # التعديل الجديد: سحب التغييرات أولاً لتجنب الرفض
+          git pull origin Master --rebase
           git push origin Master
