@@ -2,13 +2,13 @@ name: AI Auto-Developer & Deployer
 on:
   push:
     paths:
-      - 'workspace/project.zip' # يعمل التلقائي عند رفع هذا الملف
+      - 'workspace/project.zip'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # إذن حيوي للسماح للذكاء الاصطناعي بالكتابة في مستودعك
+      contents: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -19,11 +19,12 @@ jobs:
           python-version: '3.9'
 
       - name: Install Dependencies
-        run: pip install openai
+        run: pip install openai==0.28
 
       - name: Run AI Development Core
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        # المسار الآن صحيح بناءً على صورتك
         run: python src/core.py
 
       - name: Push Developed ZIP to Repo
@@ -31,5 +32,5 @@ jobs:
           git config --global user.name "AI-Autonomous-Bot"
           git config --global user.email "bot@ai-core.com"
           git add workspace/developed_project.zip
-          git commit -m "تم التطوير بواسطة الذكاء الاصطناعي: تم تحديث المشروع تلقائياً"
+          git commit -m "تم التطوير بواسطة الذكاء الاصطناعي"
           git push
