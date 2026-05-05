@@ -2,15 +2,13 @@ import os
 import json
 from openai import OpenAI
 
-# إعداد العميل الحديث متوافق مع إصدار OpenAI 1.0+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-class AegisMasterCore:
+class AegisSovereignCore:
     def __init__(self):
         self.memory_path = "workspace/AI_MEMORY.json"
         self.log_path = "OPERATIONAL_FIX_REPORT.md"
-        # دعم كافة لغات المنظومة التكتيكية بما في ذلك ملفات البناء والـ JNI
-        self.supported_ext = ('.java', '.kt', '.py', '.cpp', '.h', '.gradle', '.xml', '.txt', 'CMakeLists.txt')
+        self.supported_ext = ('.java', '.kt', '.py', '.cpp', '.h', '.gradle', '.xml')
         self.memory = self.load_memory()
 
     def load_memory(self):
@@ -19,39 +17,23 @@ class AegisMasterCore:
             try:
                 with open(self.memory_path, 'r') as f: return json.load(f)
             except: pass
-        return {"processed_files": [], "native_linked": False, "c2_protocol_active": True}
+        return {"processed_files": [], "stealth_active": True}
 
-    def save_memory(self):
-        with open(self.memory_path, 'w') as f:
-            json.dump(self.memory, f, indent=4)
-
-    def get_repo_files(self):
-        """الإدراك: مسح شامل لكل ملفات المنظومة"""
-        all_files = []
-        for root, dirs, files in os.walk("."):
-            if any(x in root for x in ['.git', 'build', '.github', 'workspace', '.idea']):
-                continue
-            for file in files:
-                if file.endswith(self.supported_ext) or file == "CMakeLists.txt":
-                    all_files.append(os.path.join(root, file))
-        return all_files
-
-    def transform_to_operational(self, file_path):
-        """التنفيذ: تفعيل بروتوكول التحييد والقيادة المستقلة مع تصحيح الأخطاء الهيكلية"""
+    def transform_to_stealth_operational(self, file_path):
         with open(file_path, 'r', errors='ignore') as f:
             content = f.read()
 
         prompt = f"""
-        المرحلة القتالية الحاسمة: تفعيل 'بروتوكول القيادة والسيطرة المستقل' (Autonomous C2 System) وتصحيح الأخطاء الهيكلية.
+        المهمة: تفعيل 'خاصية التخفي الشبحي' (Stealth Mode) و 'التحييد النشط' للملف {file_path}.
         
-        المتطلبات العملياتية الصارمة للملف {file_path}:
-        1. **تصحيح AndroidManifest**: أصلح فوراً أي تعارض في الصلاحيات أو تكرار في الوسوم، وتأكد من صحة إغلاق الـ Manifest لضمان بناء APK سليم.
-        2. **مزامنة JNI (C++)**: في ملفات الـ CPP (مثل AegisCore.cpp)، قم بتصحيح روابط الـ JNI لضمان مطابقتها لاسم الحزمة الفعلي (com.jamesfirstok.aegis) لضمان الربط الصحيح بين العتاد والأندرويد.
-        3. **صناعة القرار الذكي (C2)**: قم بحقن خوارزميات اتخاذ القرار الآلي؛ إذا رصد الرادار إشارة معادية، يجب تفعيل مضاد التشويش فوراً.
-        4. **التنسيق العملياتي والتحييد**: اربط نتائج الرادار (FFT) بمحرك التحييد (Jamming Engine) واستخدم القفز الترددي (Frequency Hopping).
-        5. **الاستقلالية**: استخدم مكتبات (Android Native APIs, SDR) حقيقية بدلاً من أي منطق محاكاة.
-        
-        أخرج الكود العملياتي النهائي المصلح والمطور فقط:
+        المتطلبات العملياتية الصارمة (أكواد تنفيذية حقيقية):
+        1. **محرك التخفي (Stealth Engine)**: حقن أكواد حقيقية لتغيير معرفات الشبكة (MAC Address/SSID) بشكل عشوائي ومنتظم لمنع التتبع الراداري.
+        2. **التحييد النشط (Active Neutralization)**: في ملفات C++، أضف خوارزمية 'إغراق القنوات' (Channel Flooding) لإرسال نبضات تشويش مركزة عند رصد محاولة اختراق.
+        3. **تشفير البصمة**: تشفير كافة البيانات الخارجة من الحساسات بنظام AES-256 GCM لضمان عدم اعتراضها.
+        4. **الارتباط الشبحي**: تفعيل بروتوكول 'القفز الترددي اللاسلكي' عبر مكتبات الـ WiFi و Bluetooth العميقة (Native) للهروب من أجهزة الرصد.
+        5. استبدل أي نصوص محاكاة بأوامر برمجية حقيقية تستدعي الـ Kernel أو مكتبات الـ Hardware مباشرة.
+
+        أخرج الكود العملياتي الحقيقي فقط:
         {content}
         """
 
@@ -59,44 +41,38 @@ class AegisMasterCore:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "أنت نواة ذكاء اصطناعي سيادية خبيرة في تصحيح أخطاء الـ JNI والـ Android Manifest والأنظمة التكتيكية."},
+                    {"role": "system", "content": "أنت مهندس حرب إلكترونية خبير في بناء أنظمة التخفي والتحييد النشط."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1
             )
             
-            # تصحيح الوصول للاستجابة
             new_code = response.choices[0].message.content.strip()
             if new_code.startswith("```"):
-                lines = new_code.split("\n")
-                new_code = "\n".join(lines[1:-1])
+                new_code = "\n".join(new_code.split("\n")[1:-1])
 
             if new_code and new_code != content:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(new_code)
                 return True
         except Exception as e:
-            print(f"❌ فشل في معالجة {file_path}: {e}")
+            print(f"❌ خطأ: {e}")
         return False
 
     def run(self):
-        print("--- 🛡️ بدء تفعيل بروتوكول القيادة المستقل والتصحيح الهيكلي لـ Aegis Master ---")
-        files = self.get_repo_files()
+        print("--- 🛡️ تفعيل وضع التخفي الشبحي والتحييد النشط لـ Aegis Master ---")
+        for root, dirs, files in os.walk("."):
+            if any(x in root for x in ['.git', 'build', 'workspace']): continue
+            for file in files:
+                if file.endswith(self.supported_ext):
+                    path = os.path.join(root, file)
+                    print(f"📡 حقن التخفي في: {path}")
+                    self.transform_to_stealth_operational(path)
         
-        with open(self.log_path, "w", encoding="utf-8") as log:
-            log.write("# ⚔️ سجل القيادة والتصحيح العملياتي الشامل\n\n")
-
-        for file in files:
-            print(f"⚙️ تفعيل وتصحيح: {file}")
-            is_updated = self.transform_to_operational(file)
-            if is_updated:
-                self.memory["processed_files"].append(file)
-                with open(self.log_path, "a", encoding="utf-8") as log:
-                    log.write(f"- [🔥] تم تصحيح وتفعيل النظام في `{file}` بنجاح.\n")
-        
-        self.save_memory()
-        print("--- ✅ تم التصحيح والتحول. النظام مستقر وعملياتي الآن ---")
+        with open(self.log_path, "a", encoding="utf-8") as log:
+            log.write("## ✅ بروتوكول التخفي الشبحي (Stealth Mode) قيد التنفيذ العملياتي الآن.\n")
+        print("--- ✅ النظام الآن في وضع التخفي التام ---")
 
 if __name__ == "__main__":
-    core = AegisMasterCore()
+    core = AegisSovereignCore()
     core.run()
