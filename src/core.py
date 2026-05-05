@@ -9,21 +9,19 @@ class AegisMasterCore:
     def __init__(self):
         self.memory_path = "workspace/AI_MEMORY.json"
         self.log_path = "OPERATIONAL_FIX_REPORT.md"
-        # دعم كافة لغات المنظومة التكتيكية
+        # دعم كافة لغات المنظومة التكتيكية بما في ذلك ملفات البناء والـ JNI
         self.supported_ext = ('.java', '.kt', '.py', '.cpp', '.h', '.gradle', '.xml', '.txt', 'CMakeLists.txt')
         self.memory = self.load_memory()
 
     def load_memory(self):
+        if not os.path.exists("workspace"): os.makedirs("workspace")
         if os.path.exists(self.memory_path):
             try:
                 with open(self.memory_path, 'r') as f: return json.load(f)
             except: pass
-        return {"processed_files": [], "native_linked": False}
+        return {"processed_files": [], "native_linked": False, "c2_protocol_active": True}
 
     def save_memory(self):
-        # التأكد من وجود مجلد workspace
-        if not os.path.exists("workspace"):
-            os.makedirs("workspace")
         with open(self.memory_path, 'w') as f:
             json.dump(self.memory, f, indent=4)
 
@@ -39,21 +37,21 @@ class AegisMasterCore:
         return all_files
 
     def transform_to_operational(self, file_path):
-        """التنفيذ: تفعيل بروتوكول التحييد الدفاعي وتحويل الكود لواقع عملياتي"""
+        """التنفيذ: تفعيل بروتوكول التحييد والقيادة المستقلة مع تصحيح الأخطاء الهيكلية"""
         with open(file_path, 'r', errors='ignore') as f:
             content = f.read()
 
         prompt = f"""
-        المرحلة القتالية: تفعيل 'بروتوكول التحييد الدفاعي' (Defense Neutralization Protocol) للملف {file_path}.
+        المرحلة القتالية الحاسمة: تفعيل 'بروتوكول القيادة والسيطرة المستقل' (Autonomous C2 System) وتصحيح الأخطاء الهيكلية.
         
-        المتطلبات العملياتية الصارمة:
-        1. **محرك التشويش (Jamming Engine)**: في ملفات C++ والبايثون، قم بحقن خوارزميات توليد الضوضاء الرقمية والقفز الترددي (Frequency Hopping) للتعمية على الرادارات المعادية.
-        2. **إخفاء البصمة (Stealth Mode)**: طور الأكواد لتقليل انبعاثات الإشارات (RF Signature) وتشفير الاتصالات بنظام AES-256.
-        3. **الرادار الإيجابي والسلبي**: حول منطق المسح إلى معالجة إشارات حقيقية (DSP) قادرة على اكتشاف محاولات الاختراق اللاسلكي والرد عليها بالتحييد.
-        4. **ربط العتاد**: تأكد من ربط ملفات C++ بـ CMakeLists.txt وتفعيل ميزة الـ Native Code لضمان السرعة القتالية.
-        5. استبدل أي منطق محاكاة متبقي بمكتبات تنفيذية (Android Native APIs, SDR Libraries, GNSS Raw) فوراً.
-
-        أخرج الكود العملياتي النهائي المطور فقط:
+        المتطلبات العملياتية الصارمة للملف {file_path}:
+        1. **تصحيح AndroidManifest**: أصلح فوراً أي تعارض في الصلاحيات أو تكرار في الوسوم، وتأكد من صحة إغلاق الـ Manifest لضمان بناء APK سليم.
+        2. **مزامنة JNI (C++)**: في ملفات الـ CPP (مثل AegisCore.cpp)، قم بتصحيح روابط الـ JNI لضمان مطابقتها لاسم الحزمة الفعلي (com.jamesfirstok.aegis) لضمان الربط الصحيح بين العتاد والأندرويد.
+        3. **صناعة القرار الذكي (C2)**: قم بحقن خوارزميات اتخاذ القرار الآلي؛ إذا رصد الرادار إشارة معادية، يجب تفعيل مضاد التشويش فوراً.
+        4. **التنسيق العملياتي والتحييد**: اربط نتائج الرادار (FFT) بمحرك التحييد (Jamming Engine) واستخدم القفز الترددي (Frequency Hopping).
+        5. **الاستقلالية**: استخدم مكتبات (Android Native APIs, SDR) حقيقية بدلاً من أي منطق محاكاة.
+        
+        أخرج الكود العملياتي النهائي المصلح والمطور فقط:
         {content}
         """
 
@@ -61,16 +59,14 @@ class AegisMasterCore:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "أنت نواة ذكاء اصطناعي سيادية مصممة لتحويل المشاريع البحثية إلى أنظمة حرب إلكترونية عملياتية."},
+                    {"role": "system", "content": "أنت نواة ذكاء اصطناعي سيادية خبيرة في تصحيح أخطاء الـ JNI والـ Android Manifest والأنظمة التكتيكية."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1
             )
             
-            # تصحيح الوصول للرد في الإصدارات الحديثة
+            # تصحيح الوصول للاستجابة
             new_code = response.choices[0].message.content.strip()
-            
-            # تنظيف الكود من علامات Markdown
             if new_code.startswith("```"):
                 lines = new_code.split("\n")
                 new_code = "\n".join(lines[1:-1])
@@ -84,24 +80,22 @@ class AegisMasterCore:
         return False
 
     def run(self):
-        print("--- ⚔️ بدء تفعيل السيادة العملياتية وبروتوكول التحييد لـ Aegis Master ---")
+        print("--- 🛡️ بدء تفعيل بروتوكول القيادة المستقل والتصحيح الهيكلي لـ Aegis Master ---")
         files = self.get_repo_files()
         
-        # تصفير تقرير العمليات
         with open(self.log_path, "w", encoding="utf-8") as log:
-            log.write("# 🛡️ سجل التحول العملياتي الحقيقي (Operational Shield)\n\n")
+            log.write("# ⚔️ سجل القيادة والتصحيح العملياتي الشامل\n\n")
 
         for file in files:
-            print(f"📡 فحص وتفعيل التحييد في: {file}")
+            print(f"⚙️ تفعيل وتصحيح: {file}")
             is_updated = self.transform_to_operational(file)
-            
             if is_updated:
                 self.memory["processed_files"].append(file)
                 with open(self.log_path, "a", encoding="utf-8") as log:
-                    log.write(f"- [✅] تم تفعيل بروتوكول التحييد في `{file}` بنجاح.\n")
+                    log.write(f"- [🔥] تم تصحيح وتفعيل النظام في `{file}` بنجاح.\n")
         
         self.save_memory()
-        print("--- ✅ تم الانتهاء. المنظومة الدفاعية في وضع العمليات القتالية الآن ---")
+        print("--- ✅ تم التصحيح والتحول. النظام مستقر وعملياتي الآن ---")
 
 if __name__ == "__main__":
     core = AegisMasterCore()
