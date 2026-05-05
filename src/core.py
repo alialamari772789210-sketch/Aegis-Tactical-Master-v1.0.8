@@ -1,6 +1,5 @@
 import os
 import json
-import subprocess
 from openai import OpenAI
 
 # إعداد العميل الحديث متوافق مع إصدار OpenAI 1.0+
@@ -22,6 +21,9 @@ class AegisMasterCore:
         return {"processed_files": [], "native_linked": False}
 
     def save_memory(self):
+        # التأكد من وجود مجلد workspace
+        if not os.path.exists("workspace"):
+            os.makedirs("workspace")
         with open(self.memory_path, 'w') as f:
             json.dump(self.memory, f, indent=4)
 
@@ -37,21 +39,21 @@ class AegisMasterCore:
         return all_files
 
     def transform_to_operational(self, file_path):
-        """التنفيذ: تحويل الكود من محاكاة إلى حقيقة وربط العتاد"""
+        """التنفيذ: تفعيل بروتوكول التحييد الدفاعي وتحويل الكود لواقع عملياتي"""
         with open(file_path, 'r', errors='ignore') as f:
             content = f.read()
 
         prompt = f"""
-        مهمة عملياتية: قم بتطوير الملف {file_path} وتحويله من وضع المحاكاة إلى التنفيذ العملياتي الحقيقي.
+        المرحلة القتالية: تفعيل 'بروتوكول التحييد الدفاعي' (Defense Neutralization Protocol) للملف {file_path}.
         
-        التعليمات الفنية الصارمة:
-        1. استبدل الأكواد الوهمية (Mock/Fake) بمكتبات حقيقية (Android Native APIs, SDR Libraries, GNSS Raw).
-        2. تأكد من ربط ملفات C++ بـ CMakeLists.txt وتفعيل ميزة الـ Native Code لضمان العمليات الحقيقية بسرعة المعالج.
-        3. حول أي وظائف رادار أو تشويش نصية إلى خوارزميات رياضية حقيقية (FFT, Signal Processing).
-        4. أصلح ملفات Gradle لضمان بناء APK يدعم المكونات الأصلية (Native Bundles).
-        5. أخرج الكود البرمجي النهائي المطور فقط.
+        المتطلبات العملياتية الصارمة:
+        1. **محرك التشويش (Jamming Engine)**: في ملفات C++ والبايثون، قم بحقن خوارزميات توليد الضوضاء الرقمية والقفز الترددي (Frequency Hopping) للتعمية على الرادارات المعادية.
+        2. **إخفاء البصمة (Stealth Mode)**: طور الأكواد لتقليل انبعاثات الإشارات (RF Signature) وتشفير الاتصالات بنظام AES-256.
+        3. **الرادار الإيجابي والسلبي**: حول منطق المسح إلى معالجة إشارات حقيقية (DSP) قادرة على اكتشاف محاولات الاختراق اللاسلكي والرد عليها بالتحييد.
+        4. **ربط العتاد**: تأكد من ربط ملفات C++ بـ CMakeLists.txt وتفعيل ميزة الـ Native Code لضمان السرعة القتالية.
+        5. استبدل أي منطق محاكاة متبقي بمكتبات تنفيذية (Android Native APIs, SDR Libraries, GNSS Raw) فوراً.
 
-        المحتوى الحالي:
+        أخرج الكود العملياتي النهائي المطور فقط:
         {content}
         """
 
@@ -59,16 +61,19 @@ class AegisMasterCore:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "أنت نواة ذكاء اصطناعي مستقلة خبيرة في الهندسة العسكرية والبرمجة التكتيكية."},
+                    {"role": "system", "content": "أنت نواة ذكاء اصطناعي سيادية مصممة لتحويل المشاريع البحثية إلى أنظمة حرب إلكترونية عملياتية."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1
             )
             
+            # تصحيح الوصول للرد في الإصدارات الحديثة
             new_code = response.choices[0].message.content.strip()
+            
             # تنظيف الكود من علامات Markdown
             if new_code.startswith("```"):
-                new_code = "\n".join(new_code.split("\n")[1:-1])
+                lines = new_code.split("\n")
+                new_code = "\n".join(lines[1:-1])
 
             if new_code and new_code != content:
                 with open(file_path, 'w', encoding='utf-8') as f:
@@ -79,7 +84,7 @@ class AegisMasterCore:
         return False
 
     def run(self):
-        print("--- ⚔️ بدء تفعيل السيادة العملياتية لـ Aegis Master ---")
+        print("--- ⚔️ بدء تفعيل السيادة العملياتية وبروتوكول التحييد لـ Aegis Master ---")
         files = self.get_repo_files()
         
         # تصفير تقرير العمليات
@@ -87,16 +92,16 @@ class AegisMasterCore:
             log.write("# 🛡️ سجل التحول العملياتي الحقيقي (Operational Shield)\n\n")
 
         for file in files:
-            print(f"📡 فحص وتفعيل: {file}")
+            print(f"📡 فحص وتفعيل التحييد في: {file}")
             is_updated = self.transform_to_operational(file)
             
             if is_updated:
                 self.memory["processed_files"].append(file)
                 with open(self.log_path, "a", encoding="utf-8") as log:
-                    log.write(f"- [✅] تم تحويل `{file}` إلى كود عملياتي حقيقي وربطه بالعتاد.\n")
+                    log.write(f"- [✅] تم تفعيل بروتوكول التحييد في `{file}` بنجاح.\n")
         
         self.save_memory()
-        print("--- ✅ تم الانتهاء. النظام الآن يعمل بكامل طاقته الحقيقية ---")
+        print("--- ✅ تم الانتهاء. المنظومة الدفاعية في وضع العمليات القتالية الآن ---")
 
 if __name__ == "__main__":
     core = AegisMasterCore()
