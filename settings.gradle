@@ -7,14 +7,13 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    // تغييرها مؤقتاً لتسهيل البحث عن المكونات
-    // repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT) // أوقم بإزالة هذا السطر تماماً
-
+    // هذا الوضع يضمن أن جميع أجزاء المشروع تستخدم نفس المستودعات المركزية
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
+        maven { url 'https://jitpack.io' } // ضروري جداً لمكتبات الرادار SDR والدرونات
     }
 }
 
