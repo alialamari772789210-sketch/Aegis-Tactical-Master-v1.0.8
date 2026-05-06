@@ -1,42 +1,67 @@
 package com.jamesfirstok.aegis.tactical
 
+import android.Manifest
+import android.content.Context
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.util.Log
+import androidx.core.content.ContextCompat
+import kotlin.math.pow
+import kotlin.math.sqrt
 
-/**
- * AEGIS RADIO ACQUISITION PROCESSOR - v7.2.6
- * وظيفة المعالج: مسح وتحليل الطيف الترددي لاكتشاف الأهداف المسيرة.
- */
-class RadioAcquisitionProcessor(private val wifiManager: WifiManager) {
+data class RadioTarget(
+    val ssid: String,
+    val rssi: Int,
+    val frequency: Int,
+    val distanceEstimate: Float, // meters
+    val threatScore: Float
+)
 
-    // مصفوفة دمج الإشارات (Signal Fusion Matrix)
-    fun executeRadioAcquisition(): List<Map<String, Any>> {
-        val detectedTargets = mutableListOf<Map<String, Any>>()
-        try {
-            val results = wifiManager.scanResults
-            for (result in results) {
-                // فحص البصمة التكتيكية للإشارة (Drone Signatures)
-                if (analyzeSignalSignature(result)) {
-                    val dbm = result.level
-                    Log.d("AEGIS_RADAR", "Target Identified: ${result.SSID} | RSSI: $dbm dBm")
-                    
-                    detectedTargets.add(mapOf(
-                        "ssid" to result.SSID,
-                        "gain" to dbm,
-                        "frequency" to result.frequency
-                    ))
-                }
+class RadioAcquisitionProcessor(private val context: Context, private val wifiManager: WifiManager) {
+    
+    suspend fun executeFullScan(): List<RadioTarget> {
+        if (!hasScanPermission()) return emptyList()
+        
+        wifiManager.startScan()
+        
+        return wifiManager.scanResults
+            .filter { isPotentialThreat(it) }
+            .map { result ->
+                val distance = estimateDistance(result.level)
+                val score = calculateThreatScore(result, distance)
+                RadioTarget(
+                    ssid = result.SSID,
+                    rssi = result.level,
+                    frequency = result.frequency,
+                    distanceEstimate = distance,
+                    threatScore = score
+                )
             }
-        } catch (e: Exception) {
-            Log.e("AEGIS_RADAR", "Acquisition Interrupted: ${e.message}")
-        }
-        return detectedTargets
+            .sortedByDescending { it.threatScore }
     }
-
-    private fun analyzeSignalSignature(result: ScanResult): Boolean {
-        // قائمة البصمات التكتيكية للأهداف المحتملة (SDR Bypass logic)
-        val targetPrefixes = listOf("DJI", "AUTEL", "DRONE", "UAV", "FPV", "SKY")
-        return targetPrefixes.any { result.SSID.uppercase().contains(it) }
+    
+    private fun hasScanPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+    
+    private fun isPotentialThreat(result: ScanResult): Boolean {
+        val suspiciousPatterns = listOf(
+            "DJI", "AUTEL", "UAV", "FPV", "DRONE", "SKY", "QUAD"
+        )
+        val highPower = result.level > -40 // Strong signal
+        val suspiciousName = suspiciousPatterns.any { 
+            result.SSID.uppercase().contains(it) 
+        }
+        return highPower || suspiciousName
+    }
+    
+    private fun estimateDistance(rssi: Int): Float {
+        // Free space path loss model
+        val txPower = -59 // 2.4GHz reference
+        val pathLoss = txPower - rssi
+        return 10f.pow((27.55f - (20f * log10(2400f)) + pathLoss) / 20f)
     }
 }
