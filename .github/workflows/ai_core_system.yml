@@ -29,36 +29,36 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python src/core.py
 
-      # --- مرحلة التنظيم الهيكلي المتقدم والتحقق الذكي من المسارات ---
+      # --- المرحلة الاستراتيجية: التنظيم الهيكلي وتصحيح المسارات ---
       - name: AI Logic for Gradle Relocation and Repair
         run: |
-          echo "🛡️ جاري تنظيف وتنظيم الهيكل التكتيكي..."
-          # إنشاء المجلد المستهدف فوراً
+          echo "🛡️ جاري البدء في عملية التنظيف والهيكلة الشاملة..."
+          
+          # 1. إنشاء المجلدات القانونية للمحرك
           mkdir -p gradle/wrapper
           
-          # نقل ملفات الـ Wrapper إذا كانت تائهة في الجذر (Root)
+          # 2. تحريك الملفات من الجذر إلى موقعها العملياتي
           if [ -f "gradle-wrapper.jar" ]; then
-            echo "📦 نقل ملف JAR إلى المسار الصحيح..."
+            echo "📦 تم العثور على ملف JAR في الجذر، جاري نقله..."
             mv gradle-wrapper.jar gradle/wrapper/
           fi
           
           if [ -f "gradle-wrapper.properties" ]; then
-            echo "⚙️ نقل ملف Properties إلى المسار الصحيح..."
+            echo "⚙️ تم العثور على ملف Properties في الجذر، جاري نقله..."
             mv gradle-wrapper.properties gradle/wrapper/
           fi
 
-          # التحقق النهائي: إذا لم يتم العثور على الملفات في أي مكان، يتم توليدها
+          # 3. خطة الطوارئ: توليد الملفات إذا فُقدت تماماً من المستودع
           if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-            echo "⚠️ ملف القلب مفقود تماماً، جاري إعادة توليده برمجياً..."
+            echo "⚠️ تنبيه: الملفات مفقودة، جاري استدعاء المحرك لتوليد نسخة جديدة..."
             gradle wrapper --gradle-version 8.2
           fi
 
-          # إصلاح نهايات الأسطر (لحل مشكلة ملفات ويندوز على لينكس)
-          sed -i 's/\r$//' gradlew || echo "Already Linux format"
-          
-          # منح صلاحية الإطلاق للمحرك الرئيسي
+          # 4. معالجة توافق النصوص وتفعيل الصلاحيات
+          sed -i 's/\r$//' gradlew || echo "Format is already correct"
           chmod +x gradlew
-          echo "✅ تم تجهيز المحرك وضبط المسارات بنجاح."
+          
+          echo "✅ اكتملت عملية التنظيم والتصحيح الهيكلي."
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -67,27 +67,20 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # --- قبول تراخيص أندرويد آلياً لضمان استمرارية الهجوم ---
-      - name: Accept Android Licenses
-        run: yes | sdkmanager --licenses || echo "Licenses already accepted"
-
-      - name: Build Tactical APK
-        # استخدام الذاكرة القصوى لضمان معالجة خوارزميات C++ والذكاء الاصطناعي
-        run: ./gradlew assembleDebug -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
-
-      - name: Commit and Push Improvements
+      # --- مرحلة حفظ التغييرات وإعادة تثبيتها في المستودع الرئيسي ---
+      - name: Commit and Push Structural Fixes
         run: |
           git config --global user.name "AI-Master-Bot"
           git config --global user.email "bot@ai-master.com"
+          
+          # إضافة كافة الملفات المنظمة والمولدة
+          git add gradle/wrapper/gradle-wrapper.jar
+          git add gradle/wrapper/gradle-wrapper.properties
+          git add gradlew
           git add .
-          # استخدام autostash لحماية البيانات من التصادم أثناء المزامنة
+          
+          # المزامنة مع المستودع لضمان عدم وجود تعارضات
           git pull origin Master --rebase --autostash
-          git commit -m "🤖 [AI Core] تم تفعيل وضع العمليات وبناء السيادة v1.0.9" || echo "No changes to commit"
+          
+          git commit -m "🤖 [AI Core] إعادة هيكلة مسارات Gradle وتصحيح ملفات الـ Wrapper" || echo "No changes to commit"
           git push origin Master
-
-      - name: Upload Sovereign APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Aegis-Tactical-v1.0.9-Operational
-          path: app/build/outputs/apk/debug/app-debug.apk
