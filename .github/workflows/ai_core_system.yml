@@ -29,21 +29,36 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python src/core.py
 
-      # --- مرحلة التنظيم الهيكلي ومنع تعارضات النظام ---
-      - name: Organize and Clean Gradle
+      # --- مرحلة التنظيم الهيكلي المتقدم والتحقق الذكي من المسارات ---
+      - name: AI Logic for Gradle Relocation and Repair
         run: |
           echo "🛡️ جاري تنظيف وتنظيم الهيكل التكتيكي..."
+          # إنشاء المجلد المستهدف فوراً
           mkdir -p gradle/wrapper
           
+          # نقل ملفات الـ Wrapper إذا كانت تائهة في الجذر (Root)
+          if [ -f "gradle-wrapper.jar" ]; then
+            echo "📦 نقل ملف JAR إلى المسار الصحيح..."
+            mv gradle-wrapper.jar gradle/wrapper/
+          fi
+          
+          if [ -f "gradle-wrapper.properties" ]; then
+            echo "⚙️ نقل ملف Properties إلى المسار الصحيح..."
+            mv gradle-wrapper.properties gradle/wrapper/
+          fi
+
+          # التحقق النهائي: إذا لم يتم العثور على الملفات في أي مكان، يتم توليدها
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "⚠️ ملف القلب مفقود تماماً، جاري إعادة توليده برمجياً..."
+            gradle wrapper --gradle-version 8.2
+          fi
+
           # إصلاح نهايات الأسطر (لحل مشكلة ملفات ويندوز على لينكس)
           sed -i 's/\r$//' gradlew || echo "Already Linux format"
           
-          # نقل الملفات لمكانها الصحيح إذا وُجدت في الجذر
-          [ -f gradle-wrapper.jar ] && mv gradle-wrapper.jar gradle/wrapper/
-          [ -f gradle-wrapper.properties ] && mv gradle-wrapper.properties gradle/wrapper/
-          
+          # منح صلاحية الإطلاق للمحرك الرئيسي
           chmod +x gradlew
-          echo "✅ تم تجهيز المحرك بنجاح."
+          echo "✅ تم تجهيز المحرك وضبط المسارات بنجاح."
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -52,12 +67,12 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # --- قبول تراخيص أندرويد آلياً لضمان عدم توقف البناء ---
+      # --- قبول تراخيص أندرويد آلياً لضمان استمرارية الهجوم ---
       - name: Accept Android Licenses
         run: yes | sdkmanager --licenses || echo "Licenses already accepted"
 
       - name: Build Tactical APK
-        # استخدام الذاكرة القصوى المتاحة للخادم لضمان معالجة C++
+        # استخدام الذاكرة القصوى لضمان معالجة خوارزميات C++ والذكاء الاصطناعي
         run: ./gradlew assembleDebug -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 
       - name: Commit and Push Improvements
@@ -65,13 +80,13 @@ jobs:
           git config --global user.name "AI-Master-Bot"
           git config --global user.email "bot@ai-master.com"
           git add .
-          # استخدام autostash لحماية التغييرات المحلية أثناء المزامنة
+          # استخدام autostash لحماية البيانات من التصادم أثناء المزامنة
           git pull origin Master --rebase --autostash
           git commit -m "🤖 [AI Core] تم تفعيل وضع العمليات وبناء السيادة v1.0.9" || echo "No changes to commit"
           git push origin Master
 
       - name: Upload Sovereign APK
-        if: success() # لا يتم الرفع إلا في حالة نجاح البناء
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Aegis-Tactical-v1.0.9-Operational
