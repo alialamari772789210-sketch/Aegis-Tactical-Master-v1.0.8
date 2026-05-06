@@ -1,14 +1,10 @@
 // Root build.gradle
-
 plugins {
-    // الإصدارات متوافقة مع Gradle 8.2 لضمان استقرار الرادار
+    // إصدار 8.2.0 ضروري لدعم ميزات أندرويد 12 و 13 و 14
     id 'com.android.application' version '8.2.0' apply false
     id 'com.android.library' version '8.2.0' apply false
     id 'org.jetbrains.kotlin.android' version '1.9.0' apply false
 }
-
-// تم حذف بلوك allprojects لأنه مُدار الآن مركزيًا عبر settings.gradle
-// هذا سيحل خطأ Plugin not found فوراً
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
