@@ -1,6 +1,6 @@
 from scapy.all import *
 import os
-
+name="Tactical_Radar"
 def tactical_radar_scan(interface="wlan0mon"):
     """
     رادار Aegis المطور: دمج الرصد العميق (10 ثوانٍ) مع تحليل كافة بصمات Dot11.
