@@ -1,60 +1,68 @@
 package com.jamesfirstok.aegis.core
 
 import android.content.Context
-import androidx.lifecycle.lifecycleScope
-import com.jamesfirstok.aegis.ai.AegisAIAnalyzer
-import com.jamesfirstok.aegis.radar.DspProcessor
-import com.jamesfirstok.aegis.service.RadarService
+import android.util.Log
+import com.jamesfirstok.aegis.core.HardwareBypassEngine
+import com.jamesfirstok.aegis.security.NeutralizationCore
 import kotlinx.coroutines.*
 
+/**
+ * AEGIS SYSTEM ORCHESTRATOR v4.0 [BATTLE-READY]
+ * وظيفة: الربط بين الرادار الترددي، نواة الذكاء الاصطناعي، وسلاح التحييد.
+ */
 class AegisSystemOrchestrator(private val context: Context) {
     
-    private val aiAnalyzer = AegisAIAnalyzer(context)
-    private val dspProcessor = DspProcessor()
-    private val radarService = RadarService(context)
-    
+    private val bypassEngine = HardwareBypassEngine(context)
+    private val neutralizationCore = NeutralizationCore() // استدعاء C++ Fusion
+    private val scope = CoroutineScope(Dispatchers.Default + Job())
+
     fun initializeTacticalCore() {
-        // 1. Real sensor fusion + DSP pipeline
-        radarService.startRealtimeProcessing()
+        Log.i("AEGIS", "Initializing Sovereign Tactical Core...")
         
-        // 2. AI threat analysis loop
-        lifecycleScope.launch {
+        // 1. تفعيل وضع القتال وتجاوز قيود العتاد
+        bypassEngine.engageCombatMode()
+        
+        // 2. تشغيل حلقة اتخاذ القرار المستقلة
+        scope.launch {
             tacticalDecisionLoop()
         }
     }
     
     private suspend fun tacticalDecisionLoop() {
-        while (true) {
-            // Real audio data من AudioRecord
-            val audioFrame = radarService.getLatestFrame()
-            val spectrum = dspProcessor.processFrame(audioFrame)
-            
-            // Real AI analysis
-            val threatResult = aiAnalyzer.analyzeThreat(spectrum.melSpectrogram)
-            
-            when {
-                threatResult.confidence > 0.85f -> executeRedAlert(threatResult)
-                threatResult.confidence > 0.6f -> executeYellowAlert(threatResult)
-                else -> executeGreenStatus()
+        while (isActive) {
+            // سحب بيانات الراديو الحقيقية (التي حقناها في HardwareBypassEngine)
+            val rfData = bypassEngine.getRawRadioData()
+            val rssi = rfData["rssi"] as Int
+            val freq = rfData["freq"] as Int
+
+            // رصد واشتباك تلقائي: إذا تجاوزت قوة الإشارة -50dBm في نطاقات المسيرات
+            if (rssi > -55 && (freq in 2400000..2483500 || freq in 5725000..5850000)) {
+                executeRedAlert(freq)
+            } else {
+                executeStealthMode()
             }
             
-            delay(50L) // 20 FPS real-time
+            delay(30L) // استجابة فائقة السرعة (33ms)
         }
     }
     
-    private fun executeRedAlert(result: ThreatResult) {
-        // Real countermeasures
-        radarService.triggerAudioJamming(440.0f) // Ultrasonic jamming
-        radarService.vibrateAlert(500) // Haptic warning
+    private fun executeRedAlert(frequency: Int) {
+        Log.e("AEGIS", "!!! TARGET LOCKED ON FREQUENCY $frequency !!!")
+        
+        // 1. استدعاء الحقن القسري (MAVLink Override) عبر JNI
+        neutralizationCore.activateMavlinkHijack()
+        
+        // 2. تفعيل التشويش النبضي لتحييد إشارة التحكم
+        neutralizationCore.startSignalJamming(frequency.toFloat())
     }
     
-    private fun executeYellowAlert(result: ThreatResult) {
-        // Enhanced tracking
-        radarService.increaseSensitivity()
+    private fun executeStealthMode() {
+        // الحفاظ على بصمة ترددية منخفضة جداً (Frequency Hopping)
+        neutralizationCore.enableStealthHopping()
     }
-    
-    private fun executeGreenStatus() {
-        // Power saving + stealth mode
-        radarService.reducePowerConsumption()
+
+    fun shutdown() {
+        bypassEngine.releaseResources()
+        scope.cancel()
     }
 }
