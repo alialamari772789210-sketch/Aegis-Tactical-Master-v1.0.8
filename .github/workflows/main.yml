@@ -1,37 +1,44 @@
-name: Aegis Tactical Master Build
+name: Build Aegis Tactical Master
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # يتيح لك تشغيل البناء يدوياً
 
 jobs:
-  build-apk:
-    name: Build AEGIS APK
+  build:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
+    
+    env:
+      # تفعيل الإصدار الأحدث من Node لتجنب التحذيرات
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-
-      - name: Checkout Repository
+      # 1. جلب الكود (تم التحديث للإصدار 4)
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      # 2. إعداد الجافا (تم التحديث للإصدار 4)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle' # تفعيل التخزين المؤقت المدمج
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Grant Execute Permission
+      # 3. منح صلاحيات التنفيذ لـ Gradle
+      - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build APK
-        run: gradle assembleDebug --stacktrace
+      # 4. بناء تطبيق الـ APK
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug
+
+      # 5. رفع الملف الناتج (Artifact) لتتمكن من تحميله
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AEGIS-APK
+          name: Aegis-Tactical-Master-v1.0.8
           path: app/build/outputs/apk/debug/*.apk
