@@ -3,13 +3,13 @@ name: Aegis Sovereign Deployment (Fix & Build)
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch: # يسمح لك بتشغيل البناء يدوياً من واجهة GitHub
+  workflow_dispatch:
 
 jobs:
   fortify-and-build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # ضروري للسماح للنواة بحفظ الإصلاحات في المستودع
+      contents: write
 
     steps:
       - name: 1. Checkout Code
@@ -27,12 +27,22 @@ jobs:
           distribution: 'temurin'
 
       - name: 3. Install AI Dependencies
-        run: pip install openai python-dotenv
+        run: pip install openai python-dotenv langchain-openai # إضافة مكتبات الربط
 
       - name: 4. Run Sovereign Core (AI Fix & Fortify)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python sovereign_core.py # استدعاء نواة السيادة لتطوير الأكواد وتأمينها
+        run: |
+          mkdir -p workspace
+          python sovereign_core.py 
+
+      - name: 4.5 Save AI Fortifications # التعديل الجوهري لحفظ إصلاحات الذكاء الاصطناعي
+        run: |
+          git config --global user.name "Aegis-Sovereign-Bot"
+          git config --global user.email "aegis-bot@github.com"
+          git add .
+          git commit -m "🛡️ تحصين سيادي آلي للأكواد" || echo "لا توجد تغييرات"
+          git push
 
       - name: 5. Setup Gradle & Permissions
         run: |
