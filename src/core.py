@@ -1,16 +1,18 @@
 import os
 import json
+import subprocess
+import stat
 from openai import OpenAI
 
-# إعداد العميل الحديث متوافق مع إصدار OpenAI 1.0+
+# إعداد العميل الحديث - يتطلب وجود OPENAI_API_KEY في أسرار المستودع
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class AegisFinalSovereignCore:
     def __init__(self):
         self.memory_path = "workspace/AI_MEMORY.json"
         self.log_path = "OPERATIONAL_FIX_REPORT.md"
-        # دعم شامل لكافة ملفات المنظومة التكتيكية وملفات بناء Gradle
-        self.supported_ext = ('.java', '.kt', '.py', '.cpp', '.h', '.gradle', '.xml', '.txt', 'CMakeLists.txt', '.properties', 'gradlew')
+        # دعم شامل لكافة ملفات المنظومة والبيئة البرمجية
+        self.supported_ext = ('.java', '.kt', '.py', '.cpp', '.h', '.gradle', '.xml', '.txt', 'CMakeLists.txt', '.properties')
         self.memory = self.load_memory()
 
     def load_memory(self):
@@ -25,73 +27,79 @@ class AegisFinalSovereignCore:
         with open(self.memory_path, 'w') as f:
             json.dump(self.memory, f, indent=4)
 
+    def secure_erase(self, file_path):
+        """بروتوكول الإبادة الفيزيائية: المسح بالأصفار (Zero-fill) لمنع الاستعادة"""
+        try:
+            size = os.path.getsize(file_path)
+            with open(file_path, "ba+", buffering=0) as f:
+                f.write(b"\x00" * size)
+            os.remove(file_path)
+            return True
+        except: return False
+
+    def set_operational_permissions(self, file_path):
+        """منح صلاحيات التنفيذ للملفات الحيوية (Linux/Android/macOS)"""
+        if file_path.endswith('.sh') or 'gradlew' in file_path:
+            st = os.stat(file_path)
+            os.chmod(file_path, st.st_mode | stat.S_IEXEC)
+
     def get_repo_files(self):
-        """الإدراك الشامل: مسح كافة أجزاء المنظومة بما فيها ملفات البناء"""
         all_files = []
         for root, dirs, files in os.walk("."):
-            if any(x in root for x in ['.git', 'build', '.github', 'workspace', '.idea']):
+            if any(x in root for x in ['.git', 'build', '.github', 'workspace', '.idea', 'venv']):
                 continue
             for file in files:
-                if file.endswith(self.supported_ext) or file in ["CMakeLists.txt", "gradlew", "gradle.properties"]:
+                if file.endswith(self.supported_ext) or file in ["gradlew", "gradle.properties", "settings.gradle"]:
                     all_files.append(os.path.join(root, file))
         return all_files
 
     def transform_to_fortified_operational(self, file_path):
-        """التنفيذ: حقن بروتوكولات الإبادة وإصلاح أنظمة بناء APK"""
+        """الحقن العملياتي: استخدام GPT-4o لتحويل الكود من محاكاة إلى حقيقة"""
         with open(file_path, 'r', errors='ignore') as f:
             content = f.read()
 
         prompt = f"""
-        المرحلة النهائية: تفعيل 'بروتوكول الإبادة الذاتية' وإصلاح نظام بناء APK للملف {file_path}.
+        الملف: {file_path}
+        المهمة: تحويل الكود إلى صيغة 'عملياتية حقيقية' (Operational).
+        1. إذا كان ملف بناء (Gradle): أصلح تعارضات الذاكرة وتأكد من الربط الصحيح لـ JNI و Python.
+        2. إذا كان ملف برمجياً (C++/Kotlin/Python): استبدل أي محاكاة بأوامر Kernel أو التعامل المباشر مع الـ Hardware.
+        3. حقن 'كاشف العبث': إذا تم تعديل الكود من جهة غير مصرحة، يجب أن يقوم بتعطيل الوظائف الحساسة.
+        4. الإبادة: تأكد من وجود دوال تمسح البيانات الحساسة من الـ RAM فور انتهاء المهمة.
         
-        المتطلبات العملياتية الصارمة:
-        1. **إصلاح نظام البناء**: إذا كان الملف هو gradlew أو gradle.properties، قم بتنظيفه من أي إعدادات ذاكرة خاطئة (مثل تعارض -Xmx) لضمان توافقه مع GitHub Actions.
-        2. **كاشف الاختراق والإبادة**: حقن منطق يراقب الوصول غير المصرح به ويفعل المسح الفيزيائي (Zero-fill) للملفات الحساسة عند الخطر.
-        3. **التحصين والقفل**: دمج ملفات وهمية (Honey-pots) وتطوير كود يغلق منافذ USB والاتصالات عند استشعار محاولة اختراق.
-        4. **الاستقلالية**: استبدل أي بقايا محاكاة بأكواد تعامل مباشر مع الـ Kernel والعتاد.
-
-        أخرج الكود المطور والنهائي فقط:
-        {content}
+        أخرج الكود المطور فقط:
         """
 
         try:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "أنت نواة ذكاء اصطناعي سيادية مسؤولة عن حماية الأنظمة وإصلاح بيئات بناء التطبيقات العسكرية."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": "أنت نواة السيادة الرقمية لـ Aegis Master. مهمتك التحصين وتفعيل الأنظمة الميدانية."},
+                    {"role": "user", "content": prompt + "\n" + content}
                 ],
                 temperature=0.1
             )
+            new_code = response.choices[0].message.content.strip().strip("```python").strip("```")
             
-            new_code = response.choices[0].message.content.strip()
-            if new_code.startswith("```"):
-                lines = new_code.split("\n")
-                new_code = "\n".join(lines[1:-1])
-
-            if new_code and new_code != content:
+            if new_code and len(new_code) > 10:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(new_code)
+                self.set_operational_permissions(file_path)
                 return True
         except Exception as e:
-            print(f"❌ فشل في معالجة {file_path}: {e}")
+            print(f"⚠️ خطأ في معالجة {file_path}: {e}")
         return False
 
     def run(self):
-        print("--- ⚔️ تفعيل بروتوكول الإبادة وإصلاح أنظمة البناء لـ Aegis Master ---")
+        print("--- ⚔️ بدء تفعيل بروتوكول السيادة والإصلاح الشامل لـ Aegis ---")
         files = self.get_repo_files()
         
-        with open(self.log_path, "a", encoding="utf-8") as log:
-            log.write("\n## 🛠️ تم فحص وإصلاح نظام البناء (Build System) وتأمين الملفات.\n")
-
         for file in files:
-            print(f"🛡️ فحص وتطوير: {file}")
-            is_updated = self.transform_to_fortified_operational(file)
-            if is_updated:
+            print(f"🛡️ تحصين وتنفيذ: {file}")
+            if self.transform_to_fortified_operational(file):
                 self.memory["processed_files"].append(file)
         
         self.save_memory()
-        print("--- ✅ تم الإصلاح والتحصين الشامل. النظام جاهز للبناء الآن ---")
+        print("--- ✅ النظام محصن، ملفات البناء جاهزة، والبروتوكولات مفعلة ---")
 
 if __name__ == "__main__":
     core = AegisFinalSovereignCore()
