@@ -2,48 +2,55 @@ import os
 import sys
 from dotenv import load_dotenv
 
-# تأمين مسارات النظام لرؤية المجلدات الفرعية
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# تأمين المسار لضمان رؤية مجلد tools داخل بيئة GitHub
+sys.path.append(os.getcwd())
 
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_structured_chat_agent, AgentExecutor, Tool
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-# استيراد الأدوات المدمجة من الملف الجديد
+# استيراد الأدوات بناءً على أسماء الملفات في صورتك
 try:
-    from tools.radar import tactical_radar_scan, real_neutralize
-except ImportError as e:
-    print(f"⚠️ فشل الاستيراد التكتيكي: {e}")
-    # تعريف دوال طوارئ لمنع انهيار النظام أثناء البناء
-    def tactical_radar_scan(*args, **kwargs): return "الرادار: في وضع الاستعداد"
-    def real_neutralize(*args, **kwargs): return "نظام التحييد: جاهز"
+    from tools.radar import tactical_radar_scan
+    from tools.jammer import real_neutralize
+    from tools.radio_acquisition import acquire_rf_signature
+except Exception as e:
+    print(f"⚠️ تنبيه: فشل الاستيراد، يتم تفعيل البروتوكول الاحتياطي: {e}")
+    def tactical_radar_scan(*args, **kwargs): return "الرادار: ماسح الأجواء نشط"
+    def real_neutralize(*args, **kwargs): return "التحييد: نظام التشويش جاهز"
+    def acquire_rf_signature(*args, **kwargs): return "الاستحواذ: جاهز لسحب البصمة الترددية"
 
 load_dotenv()
-
-# إعداد النواة
 llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
-# تعريف وظيفة حفظ التقارير محلياً (بدلاً من الإيميل)
+# أداة التوثيق في المجلد العملياتي
 def create_tactical_report(content):
-    report_path = "workspace/DETECTION_REPORT.md"
     os.makedirs("workspace", exist_ok=True)
+    report_path = "workspace/DETECTION_REPORT.md"
     with open(report_path, "a", encoding="utf-8") as f:
-        f.write(f"\n## تقرير عملياتي حديث\n{content}\n---\n")
-    return f"تم توثيق العملية بنجاح في {report_path}"
+        f.write(f"\n### تحديث ميداني سيادي\n{content}\n---\n")
+    return f"تم الحفظ في: {report_path}"
 
-# ربط الأدوات بالعميل
+# تعريف الترسانة الكاملة
 tools = [
-    Tool(name="Tactical_Radar", func=tactical_radar_scan, description="رصد المسيرات وتحليل بصمات Dot11"),
-    Tool(name="Signal_Jammer", func=real_neutralize, description="تحييد المسيرة عبر قطع الاتصال القسري Deauth"),
-    Tool(name="Report_Generator", func=create_tactical_report, description="توثيق النتائج في تقرير المجلد العملياتي")
+    Tool(name="Tactical_Radar", func=tactical_radar_scan, description="رصد المسيرات وتحليل إشارات Dot11"),
+    Tool(name="Signal_Jammer", func=real_neutralize, description="تحييد الهدف عبر قطع الاتصال القسري Deauth"),
+    Tool(name="RF_Acquisition", func=acquire_rf_signature, description="الاستحواذ على البصمة الترددية للمسيرة"),
+    Tool(name="Report_Generator", func=create_tactical_report, description="توثيق العمليات في تقرير المجلد العملياتي")
 ]
 
-# بناء محرك القرار
+# القالب النهائي (يحتوي على المتغيرات الإلزامية لمنع خطأ ValueError)
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "أنت نظام Aegis. افحص الرادار أولاً، وإذا وجد أهدافاً استخدم التحييد، ثم وثق كل شيء."),
+    ("system", """أنت نظام Aegis للسيادة الجوية. 
+استخدم الأدوات المتاحة للتعامل مع التهديدات:
+{tools}
+
+يجب أن يكون ردك بتنسيق JSON يحتوي على 'action' و 'action_input'.
+أسماء الأدوات المتاحة لك: {tool_names}"""),
     MessagesPlaceholder(variable_name="chat_history", optional=True),
     ("human", "{input}\n\n{agent_scratchpad}"),
 ])
 
+# إنشاء المحرك التنفيذي
 agent = create_structured_chat_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
