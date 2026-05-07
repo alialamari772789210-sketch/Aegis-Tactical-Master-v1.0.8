@@ -9,32 +9,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
-    env:
-      # ضمان استخدام أحدث بيئة تشغيل لتجنب التحذيرات
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
-      # 1. جلب الكود من المستودع
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. إعداد الجافا (متوافقة مع إصدار 17 في ملفك)
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. معالجة مشكلة الـ Wrapper وبناء التطبيق
-      # استخدمنا 'gradle' مباشرة لتجنب خطأ "Main class not found"
-      - name: Build APK with System Gradle
+      # هذه الخطوة ستقوم بتحميل وتثبيت الـ Wrapper الصحيح آلياً
+      - name: Setup Gradle Wrapper
         run: |
-          gradle assembleDebug --stacktrace
+          gradle wrapper --gradle-version 8.5
+          chmod +x gradlew
 
-      # 4. رفع ملف الـ APK الناتج (ستجده في قسم Artifacts)
-      - name: Upload APK Artifact
+      # الآن نستخدم ./gradlew (المحرك الخاص بالمشروع) وليس gradle النظام
+      - name: Build APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Aegis-Tactical-v2.0.0
+          name: Aegis-App-v2
           path: "**/build/outputs/apk/debug/*.apk"
-          if-no-files-found: error
