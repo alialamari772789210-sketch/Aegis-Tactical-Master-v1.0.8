@@ -1,45 +1,35 @@
-package com.jamesfirstok.aegis
-
-import android.Manifest
-import android.content.Intent
-import android.media.*
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jamesfirstok.aegis.ui.theme.AegisTheme
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+// ... نفس الاستيرادات السابقة مع إضافة:
+import com.jamesfirstok.aegis.core.AegisSystemOrchestrator
 
 class MainActivity : ComponentActivity() {
+    // 1. حقن المشغل الرئيسي (Orchestrator) الذي يربط AI و C++
+    private lateinit var orchestrator: AegisSystemOrchestrator
+
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        if (permissions[Manifest.permission.RECORD_AUDIO] == true) {
-            startService(Intent(this, RadarService::class.java))
+        // طلب صلاحيات الوصول للراديو والموقع
+        if (permissions.all { it.value }) {
+            orchestrator.initializeTacticalCore()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        permissionLauncher.launch(arrayOf(Manifest.permission.RECORD_AUDIO))
+        orchestrator = AegisSystemOrchestrator(this)
+        
+        // طلب كافة الصلاحيات التكتيكية
+        permissionLauncher.launch(arrayOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.WAKE_LOCK
+        ))
+
         setContent {
             AegisTheme {
                 Surface(color = Color.Black) {
-                    TacticalHUD()
+                    // تمرير Orchestrator للواجهة لإرسال أوامر الضرب
+                    TacticalHUD(orchestrator)
                 }
             }
         }
@@ -47,47 +37,15 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun TacticalHUD(radarVM: RadarViewModel = viewModel()) {
-    val spectrum by radarVM.spectrum.collectAsState()
-    val threatLevel by radarVM.threatLevel.collectAsState()
-    
-    Column(Modifier.fillMaxSize()) {
-        // Header
-        Text(
-            text = "⚔️ AEGIS TACTICAL v2.0",
-            color = Color.Green,
-            fontSize = 24.sp,
-            modifier = Modifier.padding(16.dp)
-        )
-        
-        // Waterfall Spectrum
-        WaterfallDisplay(spectrum = spectrum)
-        
-        // Threat Gauge
-        ThreatGauge(level = threatLevel)
-        
-        Spacer(modifier = Modifier.weight(1f))
-    }
-}
+fun TacticalHUD(orchestrator: AegisSystemOrchestrator) {
+    // ... الكود السابق للرسم ...
 
-@Composable
-fun WaterfallDisplay(spectrum: List<FloatArray>) {
-    Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
-        val heightPerLine = size.height / 100f
-        spectrum.takeLast(100).forEachIndexed { index, frame ->
-            val intensity = frame.maxOrNull() ?: 0f
-            val color = Color(
-                red = (intensity * 2f).coerceIn(0f, 1f),
-                green = 0f,
-                blue = (1f - intensity).coerceIn(0f, 1f),
-                alpha = 0.8f
-            )
-            drawLine(
-                color = color,
-                start = Offset(index * 3f, size.height),
-                end = Offset(index * 3f, size.height - intensity * heightPerLine),
-                strokeWidth = 2f
-            )
-        }
+    // 2. إضافة زر "التحييد القسري" (Neutralize)
+    Button(
+        onClick = { orchestrator.executeManualOverride() }, // استدعاء حقن MAVLink
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+        modifier = Modifier.fillMaxWidth().padding(16.dp)
+    ) {
+        Text("FORCE LANDING / JAMMING", color = Color.White, fontWeight = FontWeight.Bold)
     }
 }
