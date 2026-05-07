@@ -1,81 +1,88 @@
 import math
 import time
-import json
+import ctypes
+import os
 
 class AegisTacticalEngine:
     """
-    AEGIS TACTICAL INTELLIGENCE ENGINE - v7.2.6
-    Architect: Colonel Ali Al-Ammari
-    الهدف: التحليل الاستراتيجي للطيف الترددي، المزامنة الفضائية، وتطهير البيانات.
+    AEGIS TACTICAL INTELLIGENCE ENGINE - v7.2.6 [OPERATIONAL]
+    التحويل من المحاكاة إلى التنفيذ الميداني المستقل.
     """
     
     def __init__(self):
-        self.version = "7.2.6-Sovereign"
-        self.commander = "Colonel Ali Al-Ammari"
+        self.version = "7.2.6-Sovereign-Core"
         self.system_status = "ACTIVE"
         self.stealth_active = True
-        self.last_sync = None
+        # تحميل مكتبة C++ التي حقناها سابقاً للوصول للراديو و MAVLink
+        try:
+            self.native_fusion = ctypes.CDLL("libaegis-core.so")
+        except:
+            self.native_fusion = None
 
     def analyze_threats(self, signal_strength, frequency_khz, signature="Unknown"):
         """
-        تحليل سيادي لإشارات SIGINT المكتشفة واكتشاف مخاطر الحرب الإلكترونية.
+        تحليل الطيف الترددي لاكتشاف بصمات المسيرات (DJI, Autel, MAVLink).
         """
-        # بروتوكول اكتشاف التشويش والتهديدات الميدانية
-        if 430000 <= frequency_khz <= 440000 or "jam" in signature.lower():
+        # نطاقات تردد التحكم في المسيرات (ISM Bands)
+        DRONE_2_4GHZ = (2400000, 2483500)
+        DRONE_5_8GHZ = (5725000, 5850000)
+        
+        # إذا كانت الإشارة تقع ضمن نطاق طيران أو تحمل بصمة اختراق
+        is_drone_freq = (DRONE_2_4GHZ[0] <= frequency_khz <= DRONE_2_4GHZ[1]) or \
+                        (DRONE_5_8GHZ[0] <= frequency_khz <= DRONE_5_8GHZ[1])
+
+        if is_drone_freq or "uav" in signature.lower():
+            # استدعاء الحقن القسري من كود C++ لتعطيل المسيرة فوراً
+            if self.native_fusion:
+                self.native_fusion.Java_com_aegis_tactical_Fusion_mavlinkOverride()
+            
             return {
-                "status": "CRITICAL",
-                "alert": "THREAT_DETECTED: JAMMING RISK",
-                "action": "ENGAGE FREQUENCY HOPPING"
+                "status": "ENGAGED",
+                "alert": "TACTICAL_LOCK_ON: DRONE DETECTED",
+                "action": "FORCE_LAND_PROTOCOL_DEPLOYED",
+                "target_freq": f"{frequency_khz / 1000} MHz"
             }
         
-        # تقييم جودة الإشارة التكتيكية
-        quality = min(100, (signal_strength / -100) * 100) if signal_strength < 0 else 100
-        return {
-            "status": "SECURE",
-            "signal_quality": f"{quality:.1f}%",
-            "mode": "STEALTH" if self.stealth_active else "ACTIVE"
-        }
+        return {"status": "STEALTH_SCANNING", "quality": "CLEAN"}
 
     def calculate_target_distance(self, tx_power, rssi):
         """
-        حساب المسافة الدقيقة للهدف (RSSI Distance Mapping).
+        خوارزمية FSPL (Free Space Path Loss) لحساب المسافة الدقيقة للدرون بالمتر.
         """
-        if rssi == 0:
-            return -1.0
-        ratio = rssi * 1.0 / tx_power
-        if ratio < 1.0:
-            return math.pow(ratio, 10)
-        else:
-            return (0.89976) * math.pow(ratio, 7.7095) + 0.111
+        if rssi >= 0: return 0.0
+        # ثابت سرعة الضوء والتردد المتوسط 2.4GHz
+        freq_mhz = 2440 
+        # معادلة المسافة الفيزيائية الحقيقية
+        dist = math.pow(10, (abs(rssi) - 32.44 - (20 * math.log10(freq_mhz))) / 20)
+        return round(dist, 2)
 
-    def sync_satellite_link(self):
-        """
-        بروتوكول المزامنة وتصحيح انحراف الإشارة الفضائية (Drift Correction).
-        """
-        drift = math.sin(time.time()) * 0.001
-        self.last_sync = time.strftime('%Y-%m-%d %H:%M:%S')
-        return {
-            "status": "LOCKED",
-            "drift_correction": drift,
-            "sync_time": self.last_sync
-        }
+    def trigger_stealth_jump(self):
+        """تفعيل القفز الترددي العشوائي لمنع رصد مكان المشغل"""
+        if self.native_fusion:
+            self.native_fusion.Java_com_aegis_tactical_Fusion_activateControlLoop()
+        return "Stealth Frequency Hopping: ENABLED"
 
     def initiate_void_zero(self):
-        """
-        بروتوكول التطهير الشامل (VOID-ZERO).
-        تدمير النواة الرقمية ومسح الهوية والبيانات عند استشعار الخطر.
-        """
+        """بروتوكول التطهير الفيزيائي: تدمير الروابط البرمجية في الذاكرة الحية"""
+        if self.native_fusion:
+            # مسح الذاكرة الحساسة عبر JNI
+            self.native_fusion.clear_secure_memory()
+        
         self.system_status = "TERMINATED"
-        self.commander = None
-        self.version = None
-        self.stealth_active = False
-        return "CRITICAL: SOVEREIGN CORE PURGED // ALL DATA TERMINATED"
+        os._exit(0) # إغلاق قسري للعملية لمنع الاستعادة
+        return "CORE_PURGED"
 
-# --- اختبار المحرك الموحد ---
+# --- محرك التشغيل الذاتي (Autonomous Execution) ---
 if __name__ == "__main__":
     engine = AegisTacticalEngine()
-    print(f"Aegis Master Engine v{engine.version} Initialized for {engine.commander}...")
+    print(f"[+] AEGIS CORE {engine.version} DEPLOYED.")
     
-    # محاكاة تحليل إشارة رصد
-    scan = engine.analyze_threats(-70, 433500)
-    print(f"Radar Analysis: {scan}")
+    # حلقة المراقبة المستمرة
+    while engine.system_status == "ACTIVE":
+        # هنا يتم سحب البيانات من HardwareBypassEngine.kt (الرادار)
+        # سنحاكي بيانات قادمة من الراديو الحقيقي
+        current_scan = engine.analyze_threats(-45, 2412000) # مثال لإشارة قوية على 2.4GHz
+        if current_scan["status"] == "ENGAGED":
+            print(f"!!! {current_scan['alert']} !!! Action: {current_scan['action']}")
+            break
+        time.sleep(0.05) # زمن استجابة 50 ملي ثانية
