@@ -2,8 +2,6 @@ name: Build Aegis Tactical Master
 
 on:
   push:
-    branches: [ main, Master ] # يغطي كلا الاحتمالين لاسم الفرع الرئيسي
-  pull_request:
     branches: [ main, Master ]
   workflow_dispatch:
 
@@ -12,38 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      # حل تحذيرات Node.js 20 بشكل نهائي
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      # 1. جلب الكود من المستودع
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. إعداد بيئة الجافا 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
 
-      # 3. إصلاح وتجهيز Gradle Wrapper
       - name: Setup Gradle
         run: |
-          # التأكد من صلاحيات التنفيذ لملف التشغيل الرئيسي
           chmod +x gradlew
-          # في حال كان ملف الـ jar تالفاً، هذا الأمر سيقوم بتحديثه آلياً
-          gradle wrapper --gradle-version 8.0 
+          ./gradlew wrapper --gradle-version 8.0
 
-      # 4. بناء تطبيق الـ APK (Debug)
       - name: Build with Gradle
-        run: ./gradlew clean assembleDebug --stacktrace
+        run: ./gradlew assembleDebug
 
-      # 5. رفع ملف الـ APK الناتج كـ Artifact
+      # خطوة ذكية للبحث عن ملف الـ APK أينما كان ورفعه
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Aegis-Tactical-Master-v1.0.8
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          name: Aegis-App-Package
+          path: "**/build/outputs/apk/debug/*.apk" # البحث في كل المجلدات الفرعية
