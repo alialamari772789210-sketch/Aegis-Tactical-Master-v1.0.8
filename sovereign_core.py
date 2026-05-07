@@ -14,6 +14,16 @@ class AegisFinalSovereignCore:
         # دعم شامل لكافة ملفات المنظومة والبيئة البرمجية
         self.supported_ext = ('.java', '.kt', '.py', '.cpp', '.h', '.gradle', '.xml', '.txt', 'CMakeLists.txt', '.properties')
         self.memory = self.load_memory()
+        
+        # تعريف الخريطة التكتيكية للمسارات المطلوبة (المطابقة لـ agent_executor)
+        self.tactical_map = {
+            "tools": {
+                "__init__.py": "# Aegis Tactical Package",
+                "radar.py": "def tactical_radar_scan(): pass",
+                "jammer.py": "def real_neutralize(): pass",
+                "radio_acquisition.py": "def acquire_rf_signature(): pass"
+            }
+        }
 
     def load_memory(self):
         if not os.path.exists("workspace"): os.makedirs("workspace")
@@ -27,8 +37,24 @@ class AegisFinalSovereignCore:
         with open(self.memory_path, 'w') as f:
             json.dump(self.memory, f, indent=4)
 
+    def fortify_tactical_paths(self):
+        """تأمين المسارات: التأكد من مطابقة أسماء الملفات والمجلدات لمتطلبات الاستدعاء"""
+        print("🔍 جاري تأمين خطوط الإمداد البرمجية (Path Fortification)...")
+        for folder, files in self.tactical_map.items():
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+                print(f"✅ تم إنشاء مجلد العمليات المفقود: {folder}")
+            
+            for file_name, placeholder in files.items():
+                file_path = os.path.join(folder, file_name)
+                if not os.path.exists(file_path):
+                    with open(file_path, "w", encoding="utf-8") as f:
+                        f.write(placeholder)
+                    print(f"⚠️ تم تعويض النقص التكتيكي: {file_path}")
+        print("🛡️ جميع المسارات الآن مطابقة لبروتوكول الاستدعاء.")
+
     def secure_erase(self, file_path):
-        """بروتوكول الإبادة الفيزيائية: المسح بالأصفار (Zero-fill) لمنع الاستعادة"""
+        """بروتوكول الإبادة الفيزيائية: المسح بالأصفار لمنع الاستعادة"""
         try:
             size = os.path.getsize(file_path)
             with open(file_path, "ba+", buffering=0) as f:
@@ -38,7 +64,7 @@ class AegisFinalSovereignCore:
         except: return False
 
     def set_operational_permissions(self, file_path):
-        """منح صلاحيات التنفيذ للملفات الحيوية (Linux/Android/macOS)"""
+        """منح صلاحيات التنفيذ للملفات الحيوية"""
         if file_path.endswith('.sh') or 'gradlew' in file_path:
             st = os.stat(file_path)
             os.chmod(file_path, st.st_mode | stat.S_IEXEC)
@@ -91,6 +117,10 @@ class AegisFinalSovereignCore:
 
     def run(self):
         print("--- ⚔️ بدء تفعيل بروتوكول السيادة والإصلاح الشامل لـ Aegis ---")
+        
+        # خطوة استباقية: تأمين المسارات قبل البدء
+        self.fortify_tactical_paths()
+        
         files = self.get_repo_files()
         
         for file in files:
