@@ -20,7 +20,10 @@ jobs:
       - name: 3. Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # حل مشكلة تعارض الحزم مع نظام التشغيل
+          pip install --ignore-installed typing-extensions --break-system-packages || pip install --ignore-installed typing-extensions
+          # تثبيت المتطلبات مع تخطي حماية النظام
+          pip install -r requirements.txt --break-system-packages || pip install -r requirements.txt
           mkdir -p workspace
 
       - name: 4. Check OpenAI API Key
@@ -37,17 +40,21 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # تنصيب المكتبات الضرورية في بيئة الـ sudo للوصول للعتاد
-          sudo pip install scapy numpy pandas openai
+          # تنصيب المكتبات في بيئة الـ sudo مع تجاوز قيود النظام (Debian RECORD Error Fix)
+          sudo pip install --ignore-installed typing-extensions --break-system-packages || true
+          sudo pip install scapy numpy pandas openai langchain langchain-openai langchain-community python-dotenv --break-system-packages || sudo pip install scapy numpy pandas openai langchain langchain-openai langchain-community python-dotenv
           
-          # تنفيذ المنطق العملياتي مع صلاحيات الجذر للتحكم في بطاقة الشبكة
+          # تنفيذ المنطق العملياتي مع صلاحيات الجذر
           sudo python3 -c "
           try:
+              import sys
+              import os
+              sys.path.append(os.getcwd())
               from agent_executor import agent_executor
               response = agent_executor.invoke({'input': 'افحص الرادار، وإذا وجدت أهدافاً شوش عليها فوراً ثم قم بتوثيق العملية في تقرير الرصد داخل المجلد العملياتي'})
               print(response)
-          except ImportError:
-              print('❌ Error: agent_executor.py not found in the root directory.')
+          except ImportError as e:
+              print(f'❌ Error: {e}')
           except Exception as e:
               print(f'Critical Failure: {e}')
           "
@@ -56,7 +63,6 @@ jobs:
         run: |
           git config --global user.name "Aegis-Sovereign-Bot"
           git config --global user.email "aegis-bot@github.com"
-          # التأكد من إضافة الملف المولد من قبل الكود
           git add workspace/DETECTION_REPORT.md || true
           git commit -m "🛡️ تحديث تقرير الرصد العملياتي [Automated]" || echo "لا توجد تغييرات للتوثيق"
           git push
