@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://android.com"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000D1A">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom_bar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/radar_status_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📡 جاري مسح القطاع التكتيكي..."
+                android:textColor="#00FFFF"
+                android:gravity="center"
+                android:padding="12dp"
+                android:background="#001A33" />
+
+            <View
+                android:id="@+id/radar_visual_view"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:layout_marginTop="20dp"
+                android:background="#08111F" />
+
+            <TextView
+                android:id="@+id/intercept_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="SCANNING MODE / نمط المسح"
+                android:textColor="#00FF00"
+                android:gravity="center"
+                android:layout_marginTop="16dp"
+                android:padding="12dp"
+                android:background="#08111F" />
+
+            <TextView
+                android:id="@+id/distance_val"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="DISTANCE / المسافة: SEARCHING..."
+                android:textColor="#00FFFF"
+                android:layout_marginTop="12dp" />
+
+            <TextView
+                android:id="@+id/altitude_val"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ALTITUDE / الارتفاع: SEARCHING..."
+                android:textColor="#00FFFF"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:id="@+id/type_val"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="TYPE / النوع: SCANNING FREQUENCIES..."
+                android:textColor="#00FFFF"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ORIGIN / المصدر: CLASSIFIED / سري للغاية"
+                android:textColor="#00FFFF"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/bottom_bar"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:background="#08111F"
+        android:weightSum="4">
+
+        <Button
+            android:id="@+id/btn_home"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="الرئيسية"
+            android:textSize="10sp"
+            android:backgroundTint="#001A33"
+            android:textColor="#00FFFF" />
+
+        <Button
+            android:id="@+id/btn_radar"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="الرادار"
+            android:textSize="10sp"
+            android:backgroundTint="#00B7D6"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btn_about"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="التعريف"
+            android:textSize="10sp"
+            android:backgroundTint="#001A33"
+            android:textColor="#00FFFF" />
+
+        <Button
+            android:id="@+id/btn_settings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="الإعدادات"
+            android:textSize="10sp"
+            android:backgroundTint="#001A33"
+            android:textColor="#00FFFF" />
+    </LinearLayout>
+
+</RelativeLayout>
