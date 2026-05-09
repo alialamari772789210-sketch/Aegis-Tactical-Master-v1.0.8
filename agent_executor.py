@@ -1,98 +1,108 @@
-import os
-import sys
-import time
-import threading
-from dotenv import load_dotenv
+import asyncio
+import json
+import websockets
+import numpy as np
+from datetime import datetime
+from dataclasses import dataclass, asdict
 
-# تأمين المسار لضمان رؤية مجلد tools داخل بيئة GitHub
-sys.path.append(os.getcwd())
+# --- 1. محرك تحويل الإحداثيات (Tactical Coordinate Engine) ---
+class CoordConverter:
+    """تحويل الإحداثيات الجغرافية إلى أمتار (Local Tangent Plane)"""
+    def __init__(self, ref_lat, ref_lon):
+        self.ref_lat = np.radians(ref_lat)
+        self.ref_lon = np.radians(ref_lon)
+        self.R = 6378137.0 # نصف قطر الأرض بالأمتار
 
-from langchain_openai import ChatOpenAI
-from langchain.agents import create_structured_chat_agent, AgentExecutor, Tool
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+    def to_local_ned(self, lat, lon):
+        lat, lon = np.radians(lat), np.radians(lon)
+        dlat = lat - self.ref_lat
+        dlon = lon - self.ref_lon
+        x = dlat * self.ref_lon
+        y = dlon * self.R * np.cos(self.ref_lat)
+        return x, y # العودة بالأمتار (الشمال، الشرق)
 
-# 1. استيراد الأدوات مع تفعيل البروتوكول الاحتياطي
-try:
-    from tools.radar import tactical_radar_scan
-    from tools.jammer import real_neutralize
-    from tools.radio_acquisition import acquire_rf_signature
-except Exception as e:
-    print(f"⚠️ تنبيه: فشل الاستيراد، يتم تفعيل البروتوكول الاحتياطي: {e}")
-    def tactical_radar_scan(*args, **kwargs): return "الرادار: ماسح الأجواء نشط"
-    def real_neutralize(*args, **kwargs): return "التحييد: نظام التشويش جاهز"
-    def acquire_rf_signature(*args, **kwargs): return "الاستحواذ: جاهز لسحب البصمة الترددية"
+# --- 2. إدارة دورة حياة الأهداف (Track Lifecycle Manager) ---
+@dataclass
+class TacticalTrack:
+    track_id: str
+    pos_ned: tuple
+    velocity: float
+    confidence: float
+    last_seen: float
+    status: str = "TENTATIVE" # TENTATIVE, ACTIVE, LOST
 
-load_dotenv()
+class MultiTargetTracker:
+    def __init__(self):
+        self.tracks = {}
+        self.timeout = 5.0 # ثوانٍ قبل اعتبار الهدف مفقوداً
 
-# تحسين السرعة: محرك LLM مهيأ للاستجابة المختصرة والسريعة
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+    def update_track(self, track_id, pos, conf):
+        now = datetime.now().timestamp()
+        if track_id not in self.tracks:
+            self.tracks[track_id] = TacticalTrack(track_id, pos, 0, conf, now)
+        else:
+            t = self.tracks[track_id]
+            # حساب السرعة اللحظية (Distance / Time)
+            dist = np.linalg.norm(np.array(pos) - np.array(t.pos_ned))
+            dt = now - t.last_seen
+            t.velocity = dist / dt if dt > 0 else 0
+            t.pos_ned = pos
+            t.last_seen = now
+            t.status = "ACTIVE" if dt < self.timeout else "LOST"
 
-# 2. أداة التوثيق الميداني
-def create_tactical_report(content):
-    os.makedirs("workspace", exist_ok=True)
-    report_path = "workspace/DETECTION_REPORT.md"
-    with open(report_path, "a", encoding="utf-8") as f:
-        f.write(f"\n### [تحديث سيادي - {time.strftime('%H:%M:%S')}]\n{content}\n---\n")
-    return f"تم الحفظ في: {report_path}"
+    def purge_old_tracks(self):
+        now = datetime.now().timestamp()
+        self.tracks = {tid: t for tid, t in self.tracks.items() if now - t.last_seen < self.timeout * 2}
 
-# 3. تحسين الاستجابة: دالة التحييد السريع (Fast-Strike)
-def fast_strike_neutralize(target_mac):
-    """
-    تجاوز منطق التفكير الطويل وتنفيذ التحييد في خيط منفصل
-    لضمان عدم توقف الرادار عن العمل.
-    """
-    print(f"⚡ [استجابة سريعة] جاري تحييد الهدف {target_mac} فوراً...")
-    result = real_neutralize(target_mac)
-    create_tactical_report(f"تم تنفيذ تحييد تلقائي سريع ضد: {target_mac}")
-    return result
+# --- 3. الجسر العملياتي (WebSocket & Android Bridge) ---
+class AegisLiveRuntime:
+    def __init__(self):
+        self.tracker = MultiTargetTracker()
+        self.converter = CoordConverter(13.7022, 44.7311) # مرجع الضالع كمثال
+        self.clients = set()
 
-# 4. تعريف الترسانة الكاملة مع دمج السرعة التكتيكية
-tools = [
-    Tool(
-        name="Tactical_Radar", 
-        func=tactical_radar_scan, 
-        description="رصد المسيرات وتحليل إشارات Dot11 بصلاحيات كاملة."
-    ),
-    Tool(
-        name="Signal_Jammer", 
-        func=fast_strike_neutralize, # استخدام نسخة الاستجابة السريعة
-        description="تحييد الهدف فوراً وبسرعة قصوى عند تحديد العنوان الفيزيائي MAC."
-    ),
-    Tool(
-        name="RF_Acquisition", 
-        func=acquire_rf_signature, 
-        description="الاستحواذ على البصمة الترددية العميقة للمسيرة."
-    ),
-    Tool(
-        name="Report_Generator", 
-        func=create_tactical_report, 
-        description="توثيق العمليات والنتائج في التقرير الميداني."
-    )
-]
+    async def hud_broadcast_server(self, websocket, path):
+        """بث البيانات لواجهة الـ HUD (Dashboard)"""
+        self.clients.add(websocket)
+        try:
+            async for _ in websocket: await asyncio.sleep(10)
+        finally:
+            self.clients.remove(websocket)
 
-# 5. القالب السيادي المطور (Sovereign Prompt)
-prompt = ChatPromptTemplate.from_messages([
-    ("system", """أنت نظام Aegis للسيادة الجوية.
-مهمتك: الرصد، التحييد، والتوثيق.
-السرعة هي الأولوية القصوى. بمجرد ظهور عنوان MAC لمعادٍ، استخدم Signal_Jammer فوراً.
+    async def android_ingestion_handler(self, reader, writer):
+        """استقبال البيانات من Kotlin Sensor Layer"""
+        while True:
+            data = await reader.read(2048)
+            if not data: break
+            try:
+                payload = json.loads(data.decode())
+                # 1. تحويل الموقع للـ Local Frame
+                x, y = self.converter.to_local_ned(payload['gps']['lat'], payload['gps']['lon'])
+                
+                # 2. تحديث المسارات (Multi-Target Logic)
+                target_id = payload.get('target_mac', 'UNKNOWN_ID')
+                self.tracker.update_track(target_id, (x, y), payload.get('conf', 0.5))
+                self.tracker.purge_old_tracks()
+                
+                # 3. البث الفوري للـ HUD عبر WebSocket
+                await self.broadcast_to_hud()
+            except Exception as e:
+                print(f"B-ERR: {e}")
 
-استخدم الأدوات المتاحة:
-{tools}
+    async def broadcast_to_hud(self):
+        if not self.clients: return
+        data = json.dumps({"tracks": [asdict(t) for t in self.tracker.tracks.values()]})
+        await asyncio.gather(*[client.send(data) for client in self.clients])
 
-يجب أن يكون ردك بتنسيق JSON يحتوي على 'action' و 'action_input'.
-أسماء الأدوات المتاحة لك: {tool_names}"""),
-    MessagesPlaceholder(variable_name="chat_history", optional=True),
-    ("human", "{input}\n\n{agent_scratchpad}"),
-])
+# --- 4. تشغيل المنظومة ---
+async def main():
+    runtime = AegisLiveRuntime()
+    # تشغيل خادمين: واحد للأندرويد وواحد للـ HUD
+    server_android = await asyncio.start_server(runtime.android_ingestion_handler, '0.0.0.0', 8888)
+    server_hud = websockets.serve(runtime.hud_broadcast_server, "0.0.0.0", 9999)
+    
+    print("🚀 [V15_RUNTIME] DUAL BRIDGE ACTIVE | ANDROID: 8888 | HUD: 9999")
+    await asyncio.gather(server_android.serve_forever(), server_hud)
 
-# 6. المحرك التنفيذي المستقل
-agent = create_structured_chat_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(
-    agent=agent, 
-    tools=tools, 
-    verbose=True, 
-    handle_parsing_errors=True,
-    max_iterations=5 # تحديد التكرار لمنع الهدر الزمني
-)
-
-# ملاحظة للتشغيل: يتم استدعاء agent_executor من ملف YAML العملياتي
+if __name__ == "__main__":
+    asyncio.run(main())
