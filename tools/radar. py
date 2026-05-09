@@ -1,77 +1,103 @@
-import numpy as np # للنواة الحسابية
+import numpy as np
 from scapy.all import *
-import threading
+from concurrent.futures import ThreadPoolExecutor
 import time
+from collections import deque
+from dataclasses import dataclass
 
-class AegisAICore:
+# --- 1. محرك الاستدلال الاحتمالي (Bayesian Inference Engine) ---
+class BayesianDroneDetector:
     def __init__(self):
-        # النواة المعرفية: تخزين الأنماط المكتسبة
-        self.threat_patterns = {
-            "burst_video": {"min_len": 1000, "frequency": 0.01}, # بث فيديو
-            "control_link": {"min_len": 60, "max_len": 200, "frequency": 0.05} # أوامر تحكم
-        }
-        self.active_threats = {}
-
-    def analyze_behavior(self, packet_list):
-        """
-        التحليل المستقل: هل السلوك يشبه المسيرة؟
-        (تحليل إحصائي بدلاً من الاعتماد على الاسم فقط)
-        """
-        if len(packet_list) < 5: return False
+        # الاحتمالات القبلية (Prior Probabilities)
+        self.p_drone = 0.1  # احتمال وجود مسيرة في المنطقة
+        self.p_iot = 0.5    # احتمال وجود أجهزة مدنية
         
-        lengths = [len(p) for p in packet_list]
-        avg_len = np.mean(lengths)
-        std_dev = np.std(lengths)
+    def update_probability(self, p_current, likelihood):
+        """تحديث الاحتمالية بناءً على المعطيات الجديدة (Bayes Theorem)"""
+        # P(H|E) = (P(E|H) * P(H)) / P(E)
+        numerator = likelihood * p_current
+        denominator = (likelihood * p_current) + (0.3 * (1 - p_current))
+        return numerator / denominator
+
+# --- 2. إدارة الأهداف والتحليل الفيزيائي ---
+@dataclass
+class TacticalTrack:
+    mac: str
+    p_score: float = 0.1 # احتمالية بايزية
+    last_phy_rate: int = 0
+    rssi_history: deque = None
+    motion_vector: float = 0.0 # مدمج مع IMU الهاتف
+
+class AegisBlackBox:
+    def __init__(self):
+        self.tracks = {}
+        self.bayesian = BayesianDroneDetector()
+        # محرك المهام المحدود (Bounded Task Pool)
+        self.executor = ThreadPoolExecutor(max_workers=4) 
+
+    def extract_phy_data(self, pkt):
+        """تحليل طبقة الراديو الحقيقية (RadioTap Header)"""
+        phy_info = {}
+        if pkt.haslayer(RadioTap):
+            phy_info['rate'] = getattr(pkt[RadioTap], 'Rate', 0)
+            phy_info['freq'] = getattr(pkt[RadioTap], 'ChannelFrequency', 0)
+            phy_info['ant_signal'] = getattr(pkt[RadioTap], 'dBm_AntSignal', -100)
+        return phy_info
+
+    def analyze_motion_fusion(self, track, current_rssi):
+        """الدمج المكاني: هل التغير في الإشارة منطقي مع حركة الهاتف؟"""
+        # هنا يتم استدعاء بيانات Android IMU (محاكاة هنا)
+        user_motion = 0.5 # القيمة القادمة من SensorManager.getOrientation()
+        rssi_delta = abs(current_rssi - (np.mean(track.rssi_history) if track.rssi_history else current_rssi))
         
-        # الذكاء الاصطناعي: المسيرات تمتاز بانحراف معياري منخفض في حجم حزم التحكم
-        # واستقرار عالٍ في حزم الفيديو
-        if avg_len > 800 and std_dev < 100:
-            return "AI_CONFIRMED_DRONE_VIDEO"
-        if 60 < avg_len < 300 and std_dev < 50:
-            return "AI_CONFIRMED_DRONE_C2"
-        return None
+        # إذا كان الهاتف يتحرك والـ RSSI ثابت، أو العكس، تزداد الريبة
+        spatial_anomaly = abs(rssi_delta - user_motion)
+        return spatial_anomaly
 
-# --- النظام الهجين المطور ---
+    def process_packet(self, pkt):
+        if not pkt.haslayer(Dot11): return
+        
+        mac = pkt.addr2
+        if not mac: return
+        
+        if mac not in self.tracks:
+            self.tracks[mac] = TacticalTrack(mac=mac, rssi_history=deque(maxlen=20))
+        
+        trk = self.tracks[mac]
+        phy = self.extract_phy_data(pkt)
+        rssi = phy.get('ant_signal', -100)
+        trk.rssi_history.append(rssi)
 
-def auto_countermeasure(target_mac, interface):
-    """وحدة الرد التلقائي المستقلة"""
-    print(f"⚠️ [AI DECISION] تحييد تلقائي للهدف: {target_mac}")
-    # هجوم Deauth مكثف + حزم تشويش عشوائية (Noise Injection)
-    pkt = RadioTap()/Dot11(addr1=target_mac, addr2=target_mac, addr3=target_mac)/Dot11Deauth(reason=7)
-    sendp(pkt, iface=interface, inter=0.0001, count=2000, verbose=0)
+        # 1. تحديث الاحتمالات (Bayesian Likelihood)
+        likelihood = 0.5
+        # الأنماط الفيزيائية: المسيرات غالباً تستخدم معدلات نقل منخفضة ومستقرة للتحكم
+        if 1.0 <= phy.get('rate', 0) <= 6.0: likelihood += 0.3
+        
+        # 2. دمج الحركة (Motion Fusion)
+        anomaly = self.analyze_motion_fusion(trk, rssi)
+        if anomaly > 2.0: likelihood += 0.1 # حركة مريبة للهدف
 
-def aegis_v5_autonomous(interface="wlan0mon"):
-    ai_core = AegisAICore()
-    packet_buffer = {} # لتخزين حزم كل جهاز وتحليلها
+        trk.p_score = self.bayesian.update_probability(trk.p_score, likelihood)
 
-    def autonomous_callback(pkt):
-        if pkt.haslayer(Dot11):
-            mac = pkt.addr2
-            if not mac: return
-            
-            # إضافة الحزمة للمخزن المؤقت للتحليل
-            if mac not in packet_buffer: packet_buffer[mac] = []
-            packet_buffer[mac].append(pkt)
-            
-            # الاحتفاظ بآخر 20 حزمة فقط للتحليل السريع
-            if len(packet_buffer[mac]) > 20:
-                packet_buffer[mac].pop(0)
-                
-                # استشارة نواة الذكاء الاصطناعي
-                ai_verdict = ai_core.analyze_behavior(packet_buffer[mac])
-                
-                if ai_verdict:
-                    rssi = pkt.dBm_AntSignal if hasattr(pkt, 'dBm_AntSignal') else -100
-                    print(f"🤖 [AI CORE] تم رصد نمط معادٍ: {ai_verdict} من {mac} [RSSI: {rssi}]")
-                    
-                    # قرار الرد التلقائي (إذا كانت الإشارة قوية بما يكفي للخطر)
-                    if rssi > -60: 
-                        threading.Thread(target=auto_countermeasure, args=(mac, interface)).start()
+        if trk.p_score > 0.85: # عتبة اليقين العملياتي
+            self.executor.submit(self.respond, mac, rssi)
 
-    print("🧠 تم تفعيل نواة الذكاء الاصطناعي المستقلة (Aegis V5)")
-    print("🛠️ النظام يعمل الآن بدون الاعتماد على قواعد البيانات التقليدية فقط...")
+    def respond(self, mac, rssi):
+        if rssi > -60:
+            print(f"⚠️ [BAYES_LOCK] Drone Confirmed: {mac} | Prob: {self.tracks[mac].p_score:.2f}")
+            # تنفيذ الرد التكتيكي هنا
+
+# --- 3. تشغيل النظام (Operational Guard) ---
+def start_aegis_v7():
+    core = AegisBlackBox()
     
-    sniff(iface=interface, prn=autonomous_callback, store=0)
+    def packet_callback(pkt):
+        # المعالجة في الـ Pool لمنع عرقلة الـ Sniffer
+        core.process_packet(pkt)
 
-# التشغيل
-# aegis_v5_autonomous("wlan0mon")
+    print("🛡️ Aegis V7 [BlackBox] Operating. Bayesian Logic Engaged.")
+    # ملاحظة: يتطلب كارت شبكة خارجي يدعم Monitor Mode على الأندرويد (مثل Alfa AWUS)
+    sniff(iface="wlan0mon", prn=packet_callback, store=0)
+
+if __name__ == "__main__":
+    start_aegis_v7()
