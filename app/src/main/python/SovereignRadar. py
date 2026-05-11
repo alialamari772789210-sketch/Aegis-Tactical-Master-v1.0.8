@@ -1,0 +1,38 @@
+import os
+import numpy as np
+
+class SovereignRadar:
+    def __init__(self):
+        self.mode = "SDR_EXTERNAL"
+        # التحقق من وجود العتاد الخارجي
+        check_hw = os.popen("lsusb").read()
+        if "Realtek" not in check_hw and "HackRF" not in check_hw:
+            self.mode = "INTERNAL_PASSIVE"
+            print("--- تحذير: العتاد الخارجي غير متصل. تفعيل وضع الرصد السيادي المستقل ---")
+
+    def get_raw_data(self):
+        if self.mode == "SDR_EXTERNAL":
+            # سحب عينات حقيقية من جهاز SDR
+            return os.popen("rtl_sdr -f 2.4G -s 2M -n 1024 -").read()
+        else:
+            # وضع الرادار السلبي: لا توجد إشارات قابلة للتحليل بدون SDR
+            # نعيد مصفوفة صفرية أو ضوضاء ضعيفة، مع الإشارة إلى أن المسافة غير معروفة
+            return np.zeros(1024, dtype=np.complex64)
+
+    def run_tactical_scan(self):
+        data = self.get_raw_data()
+        distance = self.calculate_true_distance(data)
+        return distance
+
+    def calculate_true_distance(self, data):
+        """
+        تحسب المسافة بناءً على خوارزمية TOA إذا توفرت بيانات حقيقية من العتاد.
+        في الوضع السلبي (بدون SDR) نعيد -1.0 (المسافة غير معروفة).
+        """
+        if self.mode == "SDR_EXTERNAL":
+            # خوارزمية TOA الحقيقية تحتاج عدة مستقبلات، لمستقبل واحد المسافة غير دقيقة.
+            # نعيد -2.0 للإشارة إلى "وضع SDR موجود لكن المسافة غير قابلة للحساب بدقة".
+            return -2.0
+        else:
+            # وضع الرصد الداخلي: لا يمكن حساب مسافة من الهوائي الداخلي
+            return -1.0
