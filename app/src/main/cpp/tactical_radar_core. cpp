@@ -1,0 +1,33 @@
+#include <stdio.h>
+#include <liquid/liquid.h>
+
+/**
+ * نواة الرادار التكتيكي الحقيقية
+ * @param rx_buffer  مصفوفة العينات المركبة (داخل/خارج)
+ * @param samples    عدد العينات
+ */
+void tactical_radar_core(float complex * rx_buffer, int samples) {
+    // 1. إنشاء مرشح كايزر (Kaiser Filter) لعزل ضجيج الخلفية
+    float bw = 0.2f;    // عرض النطاق الترددي
+    float as = 60.0f;   // قوة كبح الترددات الجانبية (dB)
+    firfilt_cccf f = firfilt_cccf_create_kaiser(samples, bw, as, 0.0f);
+
+    // 1.1 تطبيق المرشح على الإشارة (هذا هو السطر الذي كان ناقصاً)
+    firfilt_cccf_execute_block(f, rx_buffer, samples, rx_buffer);
+
+    // 2. تحليل فورييه السريع (FFT) لرصد إزاحة دوبلر
+    fftplan q = fft_create_plan(samples, rx_buffer, rx_buffer, LIQUID_FFT_FORWARD, 0);
+    fft_execute(q);
+
+    // 3. كشف القمة - عتبة الرصد الحقيقية
+    for (int i = 0; i < samples; i++) {
+        float power = cabsf(rx_buffer[i]);
+        if (power > 0.05f) {
+            printf("Target Detected at Bin: %d, Power: %f\n", i, power);
+        }
+    }
+
+    // تنظيف
+    fft_destroy_plan(q);
+    firfilt_cccf_destroy(f);
+}
