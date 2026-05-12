@@ -1,64 +1,81 @@
 package com.jamesfirstok.aegis.core
 
 import android.content.Context
+import android.net.wifi.WifiManager
+import android.util.Log
+import com.jamesfirstok.aegis.ai.AegisAIAnalyzer
 import com.scottyab.rootbeer.RootBeer
-import com.google.android.gms.safetynet.SafetyNet
-import androidx.room.Room
 import java.io.File
 
-data class SystemIntegrityReport(
-    val radarStatus: HardwareStatus,
-    val securityStatus: SecurityStatus,
-    val aiStatus: AiStatus,
-    val overallScore: Float
-)
-
+/**
+ * AEGIS Operational Truth Verifier v6.0
+ * وظيفة: التحقق من نزاهة النظام وجاهزية العتاد قبل العمليات.
+ */
 class OperationalTruthVerifier(private val context: Context) {
     
     private val rootBeer = RootBeer(context)
-    
-    suspend fun verifySystemIntegrity(): SystemIntegrityReport {
-        return SystemIntegrityReport(
-            radarStatus = checkRadarHardware(),
-            securityStatus = checkSecurityIntegrity(),
-            aiStatus = checkAiCapabilities(),
-            overallScore = calculateIntegrityScore()
-        )
+
+    fun verifySystemIntegrity(): SystemIntegrityReport {
+        val radar = checkRadarHardware()
+        val security = checkSecurityIntegrity()
+        val ai = checkAiCapabilities()
+        
+        // حساب الدرجة النهائية بناءً على الأوزان التكتيكية
+        val score = calculateIntegrityScore(radar, security, ai)
+        
+        return SystemIntegrityReport(radar, security, ai, score)
     }
-    
+
+    /**
+     * التحقق من العتاد: المكتبات الأصلية + حالة الراديو
+     */
     private fun checkRadarHardware(): HardwareStatus {
         return try {
-            AudioRecord.getMinBufferSize(
-                48000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT
-            ).let { if (it > 0) HardwareStatus.AVAILABLE else HardwareStatus.UNAVAILABLE }
+            // 1. التأكد من تحميل محرك التحييد (C++ Fusion)
+            System.loadLibrary("aegis-core")
+            
+            // 2. التأكد من تفعيل الواي فاي للرصد الترددي
+            val wifi = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            if (wifi?.isWifiEnabled == true) HardwareStatus.AVAILABLE else HardwareStatus.UNAVAILABLE
+        } catch (e: UnsatisfiedLinkError) {
+            Log.e("AEGIS_TRUTH", "Native Library Missing!")
+            HardwareStatus.UNAVAILABLE
         } catch (e: Exception) {
             HardwareStatus.UNAVAILABLE
         }
     }
-    
-    private suspend fun checkSecurityIntegrity(): SecurityStatus {
-        // Real SafetyNet + RootBeer
-        val isRooted = rootBeer.isRooted
-        val safetyNet = SafetyNet.getClient(context)
-            .attestation("nonce").await()
+
+    /**
+     * التحقق الأمني: كشف الـ Root والتلاعب بالنظام
+     */
+    private fun checkSecurityIntegrity(): SecurityStatus {
+        val isRooted = rootBeer.isRooted || checkRootFilesManually()
         
-        return if (!isRooted && safetyNet.isSuccessful) {
-            SecurityStatus.SECURE
-        } else SecurityStatus.COMPROMISED
+        // إذا كان الجهاز Rooted، فهو COMPROMISED (غير آمن للعمليات)
+        return if (isRooted) SecurityStatus.COMPROMISED else SecurityStatus.SECURE
     }
-    
+
     private fun checkAiCapabilities(): AiStatus {
         return try {
-            // Check TFLite model loading
-            AegisAIAnalyzer(context).let { 
-                AiStatus.OPERATIONAL 
-            }
+            // محاولة أولية لتحميل نموذج الذكاء الاصطناعي
+            AegisAIAnalyzer(context)
+            AiStatus.OPERATIONAL
         } catch (e: Exception) {
+            Log.e("AEGIS_TRUTH", "AI Model Failure: ${e.message}")
             AiStatus.DEGRADED
         }
     }
-}
 
-enum class HardwareStatus { AVAILABLE, UNAVAILABLE }
-enum class SecurityStatus { SECURE, COMPROMISED }
-enum class AiStatus { OPERATIONAL, DEGRADED }
+    private fun calculateIntegrityScore(radar: HardwareStatus, security: SecurityStatus, ai: AiStatus): Float {
+        var score = 0f
+        if (radar == HardwareStatus.AVAILABLE) score += 0.5f // الرادار هو الأهم
+        if (security == SecurityStatus.SECURE) score += 0.3f  // الأمان حيوي
+        if (ai == AiStatus.OPERATIONAL) score += 0.2f        // الذكاء الاصطناعي مكمل
+        return score
+    }
+
+    private fun checkRootFilesManually(): Boolean {
+        val paths = arrayOf("/system/app/Superuser.apk", "/sbin/su", "/system/bin/su", "/system/xbin/su", "/data/local/xbin/su")
+        return paths.any { File(it).exists() }
+    }
+}
