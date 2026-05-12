@@ -81,11 +81,21 @@
         <activity android:name=".AboutActivity" android:exported="false"/>
         <activity android:name=".SettingsActivity" android:exported="false"/>
 
-        <!-- خدمات -->
+        <!-- خدمات المنظومة -->
         <service
             android:name=".service.AegisService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice|location|microphone"/>
+
+        <!-- الخدمة التكتيكية المدمجة الجديدة -->
+        <service
+            android:name=".service.TacticalRadarService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Tactical radar fusion"/>
+        </service>
 
         <service
             android:name=".service.RadarService"
