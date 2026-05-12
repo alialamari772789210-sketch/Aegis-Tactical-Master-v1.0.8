@@ -1,4 +1,4 @@
-name: Build AEGIS APK
+name: Build AEGIS APK (No Cache)
 
 on:
   push:
@@ -53,26 +53,18 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
 
-      - name: 7. إصلاح تحميل Gradle plugins
+      - name: 7. بناء APK (تجاهل التخزين المؤقت)
         run: |
-          mkdir -p ~/.gradle
-          echo "org.gradle.daemon=true" >> ~/.gradle/gradle.properties
-          echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx4g" >> ~/.gradle/gradle.properties
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --no-build-cache --stacktrace
 
-      - name: 8. بناء APK
-        uses: gradle/gradle-build-action@v3
-        with:
-          arguments: assembleDebug --stacktrace --info
-          gradle-version: 8.2
-
-      - name: 9. تجميع ملفات APK
+      - name: 8. تجميع ملفات APK
         if: success()
         run: |
           mkdir -p apk_output
           find app/build -name "*.apk" -exec cp {} apk_output/ \;
 
-      - name: 10. رفع APK
+      - name: 9. رفع APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
