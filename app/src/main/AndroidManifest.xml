@@ -1,54 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:sharedUserId="android.uid.system"> <!-- محاولة الحصول على صلاحيات النظام -->
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- تصاريح اختراق وحقن الترددات الحقيقية -->
+    <!-- ============================================================
+         تصاريح الشبكة والواي فاي
+         ============================================================ -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/> <!-- للتحكم بالراديو -->
-    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" tools:ignore="ProtectedPermissions"/>
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions"/>
-    
-    <!-- تصاريح الأداء العالي ومنع الخمول -->
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.DEVICE_POWER" tools:ignore="ProtectedPermissions"/>
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
 
-    <!-- تصاريح الرصد الجغرافي والمزامنة -->
+    <!-- ============================================================
+         تصاريح الموقع (مطلوبة لمسح Wi‑Fi و BLE)
+         ============================================================ -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
+    <!-- ============================================================
+         بلوتوث (قديم + جديد) – تغطية أندرويد 8 إلى 15
+         ============================================================ -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
+
+    <!-- ============================================================
+         صوت، اهتزاز، طاقة، إقلاع
+         ============================================================ -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
+    <!-- ============================================================
+         خدمات أمامية (مطلوبة لأندرويد 14+)
+         ============================================================ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+
+    <!-- ============================================================
+         صلاحيات النظام (فقط للأجهزة الموقعة بمفتاح النظام)
+         ============================================================ -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions"/>
+    <uses-permission android:name="android.permission.DEVICE_POWER" tools:ignore="ProtectedPermissions"/>
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" tools:ignore="ProtectedPermissions"/>
+
+    <!-- ============================================================
+         التطبيق
+         ============================================================ -->
     <application
         android:name=".AegisApplication"
+        android:allowBackup="false"
         android:extractNativeLibs="true"
         android:hardwareAccelerated="true"
         android:label="@string/app_name"
-        android:theme="@style/Theme.Aegis">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@style/Theme.Aegis"
+        android:usesCleartextTraffic="true">
 
-        <!-- واجهة التحكم التكتيكية -->
+        <!-- النشاط الرئيسي -->
         <activity
             android:name=".MainActivity"
-            android:exported="true"
             android:configChanges="orientation|screenSize"
-            android:theme="@style/Theme.Aegis.NoActionBar">
+            android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <!-- خدمة الرادار والتحييد المستمرة في الخلفية -->
+        <!-- نشاطات إضافية -->
+        <activity android:name=".DashboardActivity" android:exported="false"/>
+        <activity android:name=".RadarActivity" android:exported="false"/>
+        <activity android:name=".AboutActivity" android:exported="false"/>
+        <activity android:name=".SettingsActivity" android:exported="false"/>
+
+        <!-- خدمات -->
         <service
             android:name=".service.AegisService"
-            android:foregroundServiceType="specialUse" 
-            android:exported="false">
-            <property android:name="android.app.PROPERTY_SPECIAL_USE_CATEGORY" 
-                      android:value="Tactical Signal Processing"/>
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice|location|microphone"/>
+
+        <service
+            android:name=".service.RadarService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Radar processing"/>
         </service>
 
-        <!-- التشغيل الذاتي عند إقلاع الجهاز -->
-        <receiver android:name=".receiver.BootReceiver" android:exported="false">
+        <service
+            android:name=".service.LiveRadarService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Live radar processing"/>
+        </service>
+
+        <service
+            android:name=".service.SatelliteUplinkService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"/>
+
+        <!-- مستقبل الإقلاع التلقائي -->
+        <receiver
+            android:name=".receiver.BootReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
