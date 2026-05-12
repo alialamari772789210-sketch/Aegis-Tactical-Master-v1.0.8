@@ -1,0 +1,18 @@
+# ملفات حساسة
+app/google-services.json
+local.properties
+
+# أسرار ومفاتيح
+*.keystore
+*.jks
+*.p12
+
+# بناء
+build/
+app/build/
+.idea/
+*.iml
+
+# نظام
+.DS_Store
+Thumbs.db
