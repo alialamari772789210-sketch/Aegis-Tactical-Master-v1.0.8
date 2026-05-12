@@ -145,18 +145,18 @@
             triggerGreeting: function(name) {
                 const greetingText = `سيادة العقيد ${name}، نظام إيجيس جاهز للعمل وتحت أمرك. مصفوفة الصوت إصدار 2.3.0 نشطة.`;
                 this.speak(greetingText);
+            },
+
+            triggerAlert: function(level) {
+                this.speak(`سيادة العقيد علي، تم رصد تهديد في القطاع، المستوى ${level}.`);
             }
         };
 
         // --- وظيفة التحييد القسري (المحقونة) ---
         function executeNeutralization() {
-            if(window.AegisBridge) {
-                // استدعاء دالة الكوتلن من الويب
-                window.AegisBridge.executeManualOverride(); 
-                // نداء صوتي تكتيكي
+            if(window.AegisBridge && window.AegisBridge.executeManualOverride) {
+                window.AegisBridge.executeManualOverride();
                 AcousticMatrix.speak("تم تفعيل بروتوكول التحييد القسري. جارِ حقن الترددات والسيطرة على الهدف.");
-                
-                // تأثير بصري للتحذير
                 document.getElementById('coreStatus').innerText = "ENGAGED";
                 document.getElementById('coreStatus').style.color = "#f00";
             } else {
@@ -180,26 +180,72 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
+        // --- بيانات حية من الجسر ---
+        let currentSignalPercent = 50; // قيمة وسطية افتراضية
+        let currentThreatCount = 0;
+        let currentStrongestSSID = "";
+
+        function fetchLiveData() {
+            if (window.AegisBridge && window.AegisBridge.getLatestSignalData) {
+                try {
+                    const raw = window.AegisBridge.getLatestSignalData();
+                    const data = JSON.parse(raw);
+                    currentSignalPercent = data.signal || 0;
+                    currentThreatCount = data.threatCount || 0;
+                    if (data.threats && data.threats.length > 0) {
+                        currentStrongestSSID = data.threats[0].ssid || "";
+                    } else {
+                        currentStrongestSSID = "";
+                    }
+                } catch(e) {
+                    // فشل في جلب البيانات، نستخدم آخر قيمة
+                }
+            }
+        }
+
         function drawSignal() {
+            fetchLiveData();
+
             ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // شبكة خلفية
             ctx.strokeStyle = 'rgba(0, 204, 255, 0.05)';
             for(let x=0; x<canvas.width; x+=20) {
                 ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
             }
+            
             ctx.strokeStyle = '#00CCFF';
             ctx.lineWidth = 2;
             ctx.shadowBlur = 10;
             ctx.shadowColor = '#00CCFF';
             ctx.beginPath();
+            
             const midY = canvas.height / 2;
+            const amplitude = (currentSignalPercent / 100) * (canvas.height / 2.5);
+            
             for (let i = 0; i < canvas.width; i += 10) {
-                let h = Math.random() * (canvas.height / 2.5);
+                // موجة متناسبة مع قوة الإشارة الحقيقية
+                let h = amplitude * (Math.sin(i * 0.05) * 0.5 + 0.5);
                 ctx.moveTo(i, midY - h);
                 ctx.lineTo(i, midY + h);
             }
             ctx.stroke();
-            document.getElementById('signalVal').innerText = (98.1 + Math.random() * 1.8).toFixed(1) + "%";
+            
+            // تحديث النصوص
+            let labelText = currentSignalPercent + "%";
+            if (currentThreatCount > 0) {
+                labelText += " ⚠️ " + currentStrongestSSID;
+            }
+            document.getElementById('signalVal').innerText = labelText;
+            
+            if (currentThreatCount > 0) {
+                document.getElementById('coreStatus').innerText = "THREAT DETECTED";
+                document.getElementById('coreStatus').style.color = "#f00";
+            } else {
+                document.getElementById('coreStatus').innerText = "ENCRYPTED";
+                document.getElementById('coreStatus').style.color = "#00FF00";
+            }
         }
 
         function updateClock() {
