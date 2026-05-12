@@ -1,15 +1,34 @@
-// ... نفس الاستيرادات السابقة مع إضافة:
+package com.jamesfirstok.aegis
+
+import android.Manifest
+import android.content.Intent
+import android.os.Bundle
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.jamesfirstok.aegis.bridge.AegisBridge
 import com.jamesfirstok.aegis.core.AegisSystemOrchestrator
+import com.jamesfirstok.aegis.service.AlertManager
+import com.jamesfirstok.aegis.service.LiveRadarService
 
 class MainActivity : ComponentActivity() {
-    // 1. حقن المشغل الرئيسي (Orchestrator) الذي يربط AI و C++
+
     private lateinit var orchestrator: AegisSystemOrchestrator
+    private lateinit var alertManager: AlertManager
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        // طلب صلاحيات الوصول للراديو والموقع
-        if (permissions.all { it.value }) {
+        if (permissions.values.all { it }) {
             orchestrator.initializeTacticalCore()
         }
     }
@@ -17,19 +36,22 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         orchestrator = AegisSystemOrchestrator(this)
-        
-        // طلب كافة الصلاحيات التكتيكية
+        alertManager = AlertManager(this)
+
+        // بدء خدمة الرادار الحي
+        startService(Intent(this, LiveRadarService::class.java))
+
+        // طلب الصلاحيات
         permissionLauncher.launch(arrayOf(
             Manifest.permission.RECORD_AUDIO,
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.WAKE_LOCK
+            Manifest.permission.ACCESS_COARSE_LOCATION
         ))
 
         setContent {
             AegisTheme {
-                Surface(color = Color.Black) {
-                    // تمرير Orchestrator للواجهة لإرسال أوامر الضرب
-                    TacticalHUD(orchestrator)
+                Surface(color = Color.Black, modifier = Modifier.fillMaxSize()) {
+                    TacticalHUD(orchestrator, alertManager)
                 }
             }
         }
@@ -37,15 +59,47 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun TacticalHUD(orchestrator: AegisSystemOrchestrator) {
-    // ... الكود السابق للرسم ...
+fun TacticalHUD(orchestrator: AegisSystemOrchestrator, alertManager: AlertManager) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        // WebView يعرض واجهة HUD
+        AndroidView(
+            factory = { context ->
+                WebView(context).apply {
+                    settings.javaScriptEnabled = true
+                    webViewClient = WebViewClient()
 
-    // 2. إضافة زر "التحييد القسري" (Neutralize)
-    Button(
-        onClick = { orchestrator.executeManualOverride() }, // استدعاء حقن MAVLink
-        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-        modifier = Modifier.fillMaxWidth().padding(16.dp)
-    ) {
-        Text("FORCE LANDING / JAMMING", color = Color.White, fontWeight = FontWeight.Bold)
+                    // حقن جسر AegisBridge
+                    val bridge = AegisBridge(alertManager)
+                    addJavascriptInterface(bridge, "AegisBridge")
+
+                    // ربط زر manual override
+                    addJavascriptInterface(object {
+                        @android.webkit.JavascriptInterface
+                        fun executeManualOverride() {
+                            orchestrator.executeManualOverride()
+                        }
+
+                        @android.webkit.JavascriptInterface
+                        fun getLatestSignalData(): String {
+                            return com.jamesfirstok.aegis.LiveRadarBridgeHolder.latestData
+                        }
+                    }, "AegisBridge")
+
+                    loadUrl("file:///android_asset/aegis_hud.html")
+                }
+            },
+            modifier = Modifier.weight(1f)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // زر التحييد القسري
+        Button(
+            onClick = { orchestrator.executeManualOverride() },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            Text("FORCE LANDING / NEUTRALIZE", color = Color.White, fontWeight = FontWeight.Bold)
+        }
     }
 }
