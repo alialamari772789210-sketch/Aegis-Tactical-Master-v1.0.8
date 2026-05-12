@@ -1,65 +1,94 @@
-package com.jamesfirstok.aegis.ui
+package com.jamesfirstok.aegis.core
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.jamesfirstok.aegis.core.SystemIntegrityReport
+import android.app.*
+import android.content.Context
+import android.content.Intent
+import android.net.wifi.WifiManager
+import android.hardware.usb.UsbManager
+import android.os.IBinder
+import androidx.core.app.NotificationCompat
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 
-@Composable
-fun SovereigntyDashboard(integrityReport: SystemIntegrityReport) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // Header
-        Text(
-            text = "🛡️ AEGIS TACTICAL DASHBOARD v2.0",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Green
-        )
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        // Integrity Gauge
-        IntegrityGauge(score = integrityReport.overallScore)
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        // Status Grid
-        StatusGrid(integrityReport)
-        
-        Spacer(modifier = Modifier.weight(1f))
-        
-        // Threat Level Indicator
-        ThreatLevelBar(integrityReport)
+/**
+ * AEGIS TACTICAL RUNTIME - INTEGRATED VERSION 10.0
+ * Architect: Colonel Ali Al-Ammari
+ * Features: Autonomous Detection, Hybrid Engagement, Plug-and-Play SDR Ready
+ */
+class AegisOperationalService : Service() {
+
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(Dispatchers.Default + serviceJob)
+    
+    private lateinit var radioProcessor: RadioAcquisitionProcessor
+    private lateinit var engagementEngine: TacticalEngagementEngine
+    private val nativeCore = AegisNativeCore()
+
+    override fun onCreate() {
+        super.onCreate()
+        val wifiManager = getSystemService(WIFI_SERVICE) as WifiManager
+        radioProcessor = RadioAcquisitionProcessor(this, wifiManager)
+        engagementEngine = TacticalEngagementEngine(this, nativeCore)
     }
-}
 
-@Composable
-fun IntegrityGauge(score: Float) {
-    Canvas(modifier = Modifier.size(200.dp)) {
-        val sweepAngle = 2.8f * score // 0-100% → 0-280°
-        drawArc(
-            color = Color.Green,
-            startAngle = 220f,
-            sweepAngle = sweepAngle,
-            useCenter = true,
-            topLeft = Offset(25f, 25f),
-            size = size - Offset(50f, 50f)
-        )
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // إشعار منخفض الإزعاج للحفاظ على سرية العمليات
+        val notification = createNotification("نظام AEGIS: رصد سلبي نشط")
+        startForeground(1, notification)
+
+        runOperationalLoop()
+        return START_STICKY
     }
-    Text(
-        text = "${(score * 100).toInt()}%",
-        fontSize = 32.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color.White,
-        modifier = Modifier.offset(y = (-20).dp)
-    )
+
+    private fun runOperationalLoop() {
+        serviceScope.launch {
+            while (isActive) {
+                try {
+                    // فحص وجود عتاد خارجي لتحديد نمط الأداء
+                    val isSdrConnected = engagementEngine.checkExternalHardware()
+                    val scanInterval = if (isSdrConnected) 3000L else 12000L
+
+                    // 1. الرصد (Acquisition)
+                    val targets = radioProcessor.executeFullScan()
+                    
+                    // 2. التحليل والاشتباك (Analysis & Engagement)
+                    targets.forEach { target ->
+                        if (target.threatScore > 0.85f) {
+                            // التحييد بناءً على القدرات المتاحة حالياً
+                            engagementEngine.executeTacticalAction(target)
+                            
+                            if (target.threatScore > 0.95f) {
+                                updateNotification("تم تفعيل بروتوكول التحييد: ${target.ssid}")
+                            }
+                        }
+                    }
+
+                    delay(scanInterval)
+                } catch (e: Exception) {
+                    delay(5000)
+                }
+            }
+        }
+    }
+
+    private fun createNotification(content: String): Notification {
+        val channelId = "AEGIS_OPS"
+        val channel = NotificationChannel(channelId, "Aegis Operations", NotificationManager.IMPORTANCE_LOW)
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+
+        return NotificationCompat.Builder(this, channelId)
+            .setContentTitle("AEGIS SOVEREIGN CORE")
+            .setContentText(content)
+            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        serviceJob.cancel()
+        super.onDestroy()
+    }
 }
