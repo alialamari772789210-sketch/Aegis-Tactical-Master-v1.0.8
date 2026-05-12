@@ -1,0 +1,75 @@
+name: Build AEGIS APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 1. استنساخ المستودع
+        uses: actions/checkout@v4
+
+      - name: 2. تجهيز Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 3. تجهيز Python (لـ Chaquopy)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 4. تثبيت أدوات NDK و CMake
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+
+      - name: 5. إعداد Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
+            ndk;26.1.10909125
+
+      - name: 6. إنشاء local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "ndk.dir=$ANDROID_HOME/ndk/26.1.10909125" >> local.properties
+
+      - name: 7. منح صلاحيات تنفيذ Gradle
+        run: chmod +x gradlew
+
+      - name: 8. بناء تطبيق Debug
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: 9. بناء تطبيق Release
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: 10. تجميع ملفات APK
+        run: |
+          mkdir -p apk_output
+          cp app/build/outputs/apk/debug/app-debug.apk apk_output/AEGIS-v7.2.6-debug.apk 2>/dev/null || true
+          cp app/build/outputs/apk/release/app-release-unsigned.apk apk_output/AEGIS-v7.2.6-release-unsigned.apk 2>/dev/null || true
+
+      - name: 11. رفع ملفات APK كقطعة أثرية
+        uses: actions/upload-artifact@v4
+        with:
+          name: AEGIS-APK-v7.2.6
+          path: apk_output/
+
+      - name: 12. إنشاء إصدار في المستودع
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v7.2.6-${{ github.run_number }}
+          name: "AEGIS v7.2.6 Build #${{ github.run_number }}"
+          files: apk_output/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
