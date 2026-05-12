@@ -2,27 +2,29 @@ package com.jamesfirstok.aegis.core
 
 import android.content.Context
 import android.util.Log
-import com.jamesfirstok.aegis.core.HardwareBypassEngine
+import com.jamesfirstok.aegis.ai.AegisAIAnalyzer
 import com.jamesfirstok.aegis.security.NeutralizationCore
+import com.jamesfirstok.aegis.service.AlertManager
 import kotlinx.coroutines.*
 
 /**
- * AEGIS SYSTEM ORCHESTRATOR v4.0 [BATTLE-READY]
- * وظيفة: الربط بين الرادار الترددي، نواة الذكاء الاصطناعي، وسلاح التحييد.
+ * AEGIS SYSTEM ORCHESTRATOR v5.0 [COMMAND & CONTROL]
+ * المصمم: العقيد المهندس علي العماري
  */
 class AegisSystemOrchestrator(private val context: Context) {
     
     private val bypassEngine = HardwareBypassEngine(context)
-    private val neutralizationCore = NeutralizationCore() // استدعاء C++ Fusion
+    private val neutralizationCore = NeutralizationCore()
+    private val aiAnalyzer = AegisAIAnalyzer(context)
+    private val alertManager = AlertManager(context)
     private val scope = CoroutineScope(Dispatchers.Default + Job())
 
     fun initializeTacticalCore() {
-        Log.i("AEGIS", "Initializing Sovereign Tactical Core...")
+        Log.i("AEGIS", "INIT: Sovereign Tactical Core starting...")
         
-        // 1. تفعيل وضع القتال وتجاوز قيود العتاد
-        bypassEngine.engageCombatMode()
+        // تفعيل وضع الأداء العالي وتجاوز قيود الطاقة
+        bypassEngine.engageOperationalMode()
         
-        // 2. تشغيل حلقة اتخاذ القرار المستقلة
         scope.launch {
             tacticalDecisionLoop()
         }
@@ -30,35 +32,68 @@ class AegisSystemOrchestrator(private val context: Context) {
     
     private suspend fun tacticalDecisionLoop() {
         while (isActive) {
-            // سحب بيانات الراديو الحقيقية (التي حقناها في HardwareBypassEngine)
-            val rfData = bypassEngine.getRawRadioData()
-            val rssi = rfData["rssi"] as Int
-            val freq = rfData["freq"] as Int
+            try {
+                // سحب بيانات الرادار المتقدمة (بما فيها البصمة الراديوية)
+                val rfData = bypassEngine.getRawRadioData()
+                val rssi = rfData["rssi"] as Int
+                val freq = rfData["freq_mhz"] as? Int ?: 0
+                val isSpoofed = rfData["spoofing_detected"] as? Boolean ?: false
 
-            // رصد واشتباك تلقائي: إذا تجاوزت قوة الإشارة -50dBm في نطاقات المسيرات
-            if (rssi > -55 && (freq in 2400000..2483500 || freq in 5725000..5850000)) {
-                executeRedAlert(freq)
-            } else {
-                executeStealthMode()
+                // تجهيز مدخلات الذكاء الاصطناعي
+                val threatInput = floatArrayOf(
+                    rssi.toFloat() / -100f, 
+                    freq.toFloat() / 6000f, 
+                    if (isSpoofed) 1.0f else 0.0f, // إدخال عامل التزييف في القرار
+                    0.5f
+                )
+                
+                val prediction = aiAnalyzer.analyzeThreat(threatInput)
+
+                // منطق الاشتباك التلقائي
+                if (prediction.confidence > 0.80f || (isSpoofed && rssi > -60)) {
+                    executeRedAlert(freq, rssi, "AI_AUTO_LOCKED")
+                } else {
+                    Log.d("AEGIS", "Scanning... Noise Level: $rssi dBm")
+                }
+                
+            } catch (e: Exception) {
+                Log.e("AEGIS", "Cycle Error: ${e.message}")
             }
             
-            delay(30L) // استجابة فائقة السرعة (33ms)
+            delay(33L) // سرعة استجابة برادارية
         }
     }
     
-    private fun executeRedAlert(frequency: Int) {
-        Log.e("AEGIS", "!!! TARGET LOCKED ON FREQUENCY $frequency !!!")
-        
-        // 1. استدعاء الحقن القسري (MAVLink Override) عبر JNI
-        neutralizationCore.activateMavlinkHijack()
-        
-        // 2. تفعيل التشويش النبضي لتحييد إشارة التحكم
-        neutralizationCore.startSignalJamming(frequency.toFloat())
+    private fun executeRedAlert(frequency: Int, rssi: Int, triggerSource: String) {
+        Log.e("AEGIS", "!!! ATTACK INITIATED: $triggerSource !!!")
+        Log.e("AEGIS", "Target: Freq=$frequency, Power=$rssi")
+
+        // 1. تنبيه القائد (Vibration/Audio)
+        alertManager.triggerAlert(500) 
+
+        // 2. الهجوم الإلكتروني (JNI Layer)
+        neutralizationCore.activateMavlinkHijack() // سيطرة على البروتوكول
+        neutralizationCore.startSignalJamming(frequency.toFloat()) // حجب التردد
     }
-    
-    private fun executeStealthMode() {
-        // الحفاظ على بصمة ترددية منخفضة جداً (Frequency Hopping)
-        neutralizationCore.enableStealthHopping()
+
+    /**
+     * أمر القائد: تحييد قسري فوري بغض النظر عن تحليل الذكاء الاصطناعي
+     */
+    fun executeManualOverride() {
+        Log.w("AEGIS", "COMMANDER OVERRIDE: Engaging full electronic countermeasures.")
+        val rfData = bypassEngine.getRawRadioData()
+        val freq = rfData["freq_mhz"] as? Int ?: 2412
+        executeRedAlert(freq, -40, "COMMANDER_DIRECT_ORDER")
+    }
+
+    /**
+     * بروتوكول الطوارئ: مسح البيانات وتدمير المفاتيح في حال الخطر
+     */
+    fun emergencySelfDestruct() {
+        Log.e("AEGIS", "CRITICAL: Wiping all tactical data...")
+        bypassEngine.releaseResources()
+        scope.cancel()
+        // هنا يتم استدعاء وظائف المسح العميق في SecurityModel
     }
 
     fun shutdown() {
