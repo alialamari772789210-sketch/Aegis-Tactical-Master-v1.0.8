@@ -21,30 +21,48 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 3. تجهيز Python (لـ Chaquopy)
+      - name: 3. تجهيز Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: 4. تثبيت أدوات NDK و CMake
+      - name: 4. تثبيت متطلبات Python
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          else
+            pip install numpy
+          fi
+
+      - name: 5. تثبيت أدوات NDK و CMake
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build
 
-      - name: 5. إعداد Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platforms;android-34
-            build-tools;34.0.0
-            ndk;26.1.10909125
-
-      - name: 6. إنشاء local.properties
+      - name: 6. إعداد Android SDK مع قبول الترخيص
         run: |
+          # تحميل أدوات سطر الأوامر
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q commandlinetools-linux-11076708_latest.zip
+          mv cmdline-tools latest
+          
+          # تعيين المتغيرات
+          export ANDROID_HOME=$HOME/android-sdk
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+          
+          # قبول التراخيص تلقائياً
+          yes | sdkmanager --licenses > /dev/null 2>&1
+          
+          # تثبيت المكونات المطلوبة
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125"
+          
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "ndk.dir=$ANDROID_HOME/ndk/26.1.10909125" >> local.properties
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
 
-      - name: 7. منح صلاحيات تنفيذ Gradle
+      - name: 7. منح صلاحيات Gradle
         run: chmod +x gradlew
 
       - name: 8. بناء تطبيق Debug
@@ -56,19 +74,19 @@ jobs:
       - name: 10. تجميع ملفات APK
         run: |
           mkdir -p apk_output
-          cp app/build/outputs/apk/debug/app-debug.apk apk_output/AEGIS-v7.2.6-debug.apk 2>/dev/null || true
-          cp app/build/outputs/apk/release/app-release-unsigned.apk apk_output/AEGIS-v7.2.6-release-unsigned.apk 2>/dev/null || true
+          cp app/build/outputs/apk/debug/app-debug.apk apk_output/AEGIS-v7.2.6-debug.apk 2>/dev/null || echo "No debug APK"
+          cp app/build/outputs/apk/release/app-release-unsigned.apk apk_output/AEGIS-v7.2.6-release-unsigned.apk 2>/dev/null || echo "No release APK"
 
-      - name: 11. رفع ملفات APK كقطعة أثرية
+      - name: 11. رفع APK كقطعة أثرية
         uses: actions/upload-artifact@v4
         with:
           name: AEGIS-APK-v7.2.6
           path: apk_output/
 
-      - name: 12. إنشاء إصدار في المستودع
+      - name: 12. إنشاء إصدار GitHub
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v7.2.6-${{ github.run_number }}
+          tag_name: v7.2.6-build-${{ github.run_number }}
           name: "AEGIS v7.2.6 Build #${{ github.run_number }}"
           files: apk_output/*.apk
         env:
