@@ -1,0 +1,25 @@
+# ملفات محلية
+local.properties
+
+# ملفات Google (إن وجدت)
+app/google-services.json
+
+# أسرار ومفاتيح
+*.keystore
+*.jks
+*.p12
+
+# مجلدات البناء
+build/
+app/build/
+.idea/
+*.iml
+
+# نظام التشغيل
+.DS_Store
+Thumbs.db
+
+# ملفات Python مؤقتة
+__pycache__/
+*.pyc
+*.pyo
