@@ -3,12 +3,15 @@
 #include <cmath>
 #include <complex>
 #include <android/log.h>
+#include <cstring>
 
 #define LOG_TAG "AegisTacticalCore"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 
-// 1. خوارزمية FFT حقيقية لتحليل الإشارات الرادارية في الوقت الفعلي
+// ============================================================
+// 1. خوارزمية FFT (Cooley-Tukey)
+// ============================================================
 void fast_fourier_transform(std::vector<std::complex<double>>& data) {
     size_t n = data.size();
     if (n <= 1) return;
@@ -29,57 +32,126 @@ void fast_fourier_transform(std::vector<std::complex<double>>& data) {
     }
 }
 
-// 2. دالة كشف بصمة المسيرة بناءً على تحليل قمم الطاقة (Peak Detection)
+// ============================================================
+// 2. كشف بصمة التهديد (عتبة ديناميكية)
+// ============================================================
 bool detect_drone_signature(const double* magnitude_data, int len) {
-    double threshold = 0.85; // عتبة الطاقة التكتيكية (Threshold)
+    double sum = 0.0;
+    for (int i = 0; i < len; i++) {
+        sum += magnitude_data[i];
+    }
+    double avg = sum / len;
+    double threshold = avg * 3.0; // عتبة ديناميكية: 3 أضعاف المتوسط
+
     int signal_count = 0;
-    
     for (int i = 0; i < len; i++) {
         if (magnitude_data[i] > threshold) {
             signal_count++;
         }
     }
-    
-    // إذا تجاوزت النقاط المكتشفة 5% من عرض النطاق، يعتبر هدفاً محققاً
-    return signal_count > (len * 0.05);
+    return signal_count > (len * 0.03); // 3% من النطاق
 }
 
-// 3. دالة الجسر (JNI) الرئيسية
+// ============================================================
+// 3. جسر JNI الرئيسي: processSignal
+// ============================================================
 extern "C"
 JNIEXPORT jdoubleArray JNICALL
-Java_com_jamesfirstok_aegis_radar_TacticalRadar_processSignal(JNIEnv *env, jobject thiz, jdoubleArray raw_signal) {
+Java_com_jamesfirstok_aegis_radar_TacticalRadar_processSignal(
+        JNIEnv *env, jobject thiz, jdoubleArray raw_signal) {
     
-    // سحب البيانات الخام من طبقة جافا
     jsize len = env->GetArrayLength(raw_signal);
-    jdouble *body = env->GetDoubleArrayElements(raw_signal, 0);
+    jdouble *body = env->GetDoubleArrayElements(raw_signal, nullptr);
 
-    // تحويل الإشارة إلى أعداد مركبة (Complex Numbers) للمعالجة
     std::vector<std::complex<double>> signal_data(len);
     for (int i = 0; i < len; i++) {
-        signal_data[i] = std::complex<double>(body[i], 0);
+        signal_data[i] = std::complex<double>(body[i], 0.0);
     }
 
-    // التنفيذ: تحويل فورييه السريع (FFT)
     fast_fourier_transform(signal_data);
 
-    // حساب حجم الطاقة (Magnitude) وتخزينها
     jdoubleArray result = env->NewDoubleArray(len);
-    double fill[len];
+    std::vector<double> fill(len);
     for (int i = 0; i < len; i++) {
         fill[i] = std::abs(signal_data[i]);
     }
 
-    // تفعيل كاشف الأهداف المهددة تلقائياً
-    if (detect_drone_signature(fill, len)) {
+    if (detect_drone_signature(fill.data(), len)) {
         LOGW("⚠️ [ALERT] Aegis Radar: DRONE SIGNATURE DETECTED!");
-        // هنا يمكن إرسال إشارة مقاطعة (Interrupt) فورية لنظام التحييد
     } else {
         LOGI("Aegis Radar: Spectrum Clear.");
     }
 
-    // إعادة النتائج لطبقة التطبيق لعرضها على شاشة الشلال (Waterfall)
-    env->SetDoubleArrayRegion(result, 0, len, fill);
+    env->SetDoubleArrayRegion(result, 0, len, fill.data());
     env->ReleaseDoubleArrayElements(raw_signal, body, 0);
-
     return result;
+}
+
+// ============================================================
+// 4. دوال JNI للتشويش والتحييد
+// ============================================================
+
+// دالة مساعدة للإرسال عبر واجهة الراديو (تُطبع حالياً)
+static void send_to_radio_driver(const uint8_t* data, size_t len) {
+    LOGI("Sending packet (%zu bytes)", len);
+    // في المنظومة الحقيقية: حقن في شريحة Wi‑Fi أو SDR
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jamesfirstok_aegis_security_NeutralizationCore_nativeMavlinkInject(
+        JNIEnv* env, jobject thiz) {
+    
+    uint8_t packet[32];
+    int i = 0;
+    // ترويسة MAVLink مبسطة لأمر الهبوط
+    packet[i++] = 0xFE; // Start sign (MAVLink v1)
+    packet[i++] = 0x09; // Payload length
+    packet[i++] = 0x01; // Sequence
+    packet[i++] = 0xFF; // System ID
+    packet[i++] = 0xBE; // Component ID
+    packet[i++] = 0x4C; // Message ID (COMMAND_LONG)
+    packet[i++] = 0x00;
+    packet[i++] = 0x00;
+    
+    float cmd = 21.0f; // MAV_CMD_NAV_LAND
+    memcpy(&packet[i], &cmd, 4); i += 4;
+    for (int j = 0; j < 24; j++) packet[i++] = 0x00;
+
+    send_to_radio_driver(packet, i);
+    LOGI("MAVLink override sent.");
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jamesfirstok_aegis_security_NeutralizationCore_nativeSignalJam(
+        JNIEnv* env, jobject thiz, jfloat freq) {
+    LOGI("Jamming signal deployed at %.2f MHz", freq);
+    // في المنظومة الحقيقية: توليد ضوضاء على التردد المطلوب
+}
+
+extern "C"
+JNIEXPORT jfloat JNICALL
+Java_com_jamesfirstok_aegis_core_AegisSystemOrchestrator_activateControlLoop(
+        JNIEnv* env, jobject thiz) {
+    static float last_error = 0.0f;
+    static float integral = 0.0f;
+    float setpoint = 2412.0f;
+    float current_freq = 2415.0f;
+    float error = setpoint - current_freq;
+    integral += error;
+    float derivative = error - last_error;
+    float output = (0.5f * error) + (0.1f * integral) + (0.05f * derivative);
+    last_error = error;
+    LOGI("PID control: correction = %.2f MHz", output);
+    return output;
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_jamesfirstok_aegis_core_AegisSystemOrchestrator_mavlinkOverride(
+        JNIEnv* env, jobject thiz) {
+    LOGI("MAVLink override triggered from Orchestrator.");
+    Java_com_jamesfirstok_aegis_security_NeutralizationCore_nativeMavlinkInject(env, thiz);
+    return JNI_TRUE;
 }
