@@ -15,5 +15,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Aegis-Tactical-Master"
 include ':app'
-google 
-fuolc
