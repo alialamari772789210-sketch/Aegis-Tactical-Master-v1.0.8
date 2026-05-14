@@ -1,12 +1,13 @@
 plugins {
-    id("com.android.application") version "8.2.2"
-    id("org.jetbrains.kotlin.android") version "1.9.22"
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
-    id("com.chaquo.python") version "15.0.1"
+    id("com.chaquo.python")
 }
 
 android {
-    ndkVersion = "29.0.14206865"
+    // هذا السطر هو الأهم لاستقرار البناء في هاتفك
+    ndkVersion = "29.0.14206865" 
     namespace = "com.jamesfirstok.aegis"
     compileSdk = 34
 
@@ -61,8 +62,11 @@ dependencies {
     implementation("androidx.compose.ui:ui:1.6.5")
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.5")
+    
+    // Room Database
     implementation("androidx.room:room-runtime:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
+    
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("com.chaquo.python:runtime:15.0.1")
     implementation("org.tensorflow:tensorflow-lite:2.14.0")
