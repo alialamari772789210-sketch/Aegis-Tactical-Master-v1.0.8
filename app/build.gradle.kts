@@ -17,22 +17,7 @@ android {
         versionName = "2.0.0-Tactical-Operational"
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
-        }
-
-        python {
-            version = "3.10"
-            pip {
-                install("numpy")
-                install("pyserial")
-            }
-        }
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
     }
 
@@ -49,6 +34,16 @@ android {
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.10"
+        pip {
+            install("numpy")
+            install("pyserial")
+        }
     }
 }
 
