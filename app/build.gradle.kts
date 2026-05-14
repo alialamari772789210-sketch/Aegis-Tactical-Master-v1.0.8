@@ -6,8 +6,7 @@ plugins {
 }
 
 android {
-    // هذا السطر هو الأهم لاستقرار البناء في هاتفك
-    ndkVersion = "29.0.14206865" 
+    ndkVersion = "25.2.9519653" // تنويه: تأكد من تحميل إصدار NDK هذا من الـ SDK Manager
     namespace = "com.jamesfirstok.aegis"
     compileSdk = 34
 
@@ -68,7 +67,9 @@ dependencies {
     kapt("androidx.room:room-compiler:2.6.1")
     
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    implementation("com.chaquo.python:runtime:15.0.1")
+    
+    // تم حذف سطر com.chaquo.python:runtime المتسبب بالخطأ من هنا بنجاح
+
     implementation("org.tensorflow:tensorflow-lite:2.14.0")
     implementation("com.github.wendykierp:JTransforms:3.1")
 }
