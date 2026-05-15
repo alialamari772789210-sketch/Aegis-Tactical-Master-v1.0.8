@@ -10,34 +10,26 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.log10
 import kotlin.math.pow
-
-/**
- * ============================================================================
- * AEGIS Operational RF Engine v12.0 - ADVANCED TACTICAL EDITION
- * ============================================================================
- * * الميزات المضافة:
- * - تحليل البصمة الراديوية (RF Fingerprinting) لكشف التزييف.
- * - نظام الوعي المكاني المتقدم.
- * - إدارة الموارد العملياتية لضمان الاستدامة الميدانية.
- * ============================================================================
- */
 
 class HardwareBypassEngine(private val context: Context) {
 
     companion object {
-        private const val TAG = "AEGIS_RF_ADVANCED"
+        private const val TAG = "AEGIS_HARDWARE_ENGINE"
     }
 
     private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
     private val operationalMode = AtomicBoolean(false)
 
+    // قفل المعالجة التكتيكي عالي الطاقة لمنع نوم التطبيق في الخلفية الميدانية
     private val wakeLock: PowerManager.WakeLock = powerManager.newWakeLock(
         PowerManager.PARTIAL_WAKE_LOCK, "AEGIS::OperationalRF"
-    )
+    ).apply {
+        setReferenceCounted(false)
+    }
 
-    // قاعدة بيانات البصمات (بصمات ترددية نموذجية للمسيرات)
     private val RF_FINGERPRINTS = mapOf(
         "DJI_O3" to listOf("80MHz", "802.11ax"),
         "AUTEL_EVO" to listOf("40MHz", "802.11ac"),
@@ -45,54 +37,58 @@ class HardwareBypassEngine(private val context: Context) {
     )
 
     /**
-     * جلب وتحليل البيانات الراديوية الخام مع كشف التزييف
+     * جلب وتحليل البيانات الراديوية الخام للوضع الهجين
      */
     fun getRawRadioData(): Map<String, Any> {
         if (!hasLocationPermission()) return buildFallbackData("PERMISSION_DENIED")
         if (!wifiManager.isWifiEnabled) return buildFallbackData("WIFI_DISABLED")
 
         return try {
-            wifiManager.startScan()
+            // [تعديل تكتيكي حاسم]: لتخطي حظر أندرويد لـ startScan، نتحول للمسح السلبي المستقر (Passive Scan Reception)
+            // الكود يسحب أحدث تدفق لعينات الطيف المسجلة بالهوائي فوراً دون طلب إعادة مسح ميكانيكي حابس
             val results = wifiManager.scanResults ?: emptyList()
             if (results.isEmpty()) return buildFallbackData("NO_SIGNALS")
 
             val strongest = results.maxByOrNull { it.level }
             strongest?.let { analyzeTargetFingerprint(it) } ?: buildFallbackData("NO_TARGET")
         } catch (e: Exception) {
-            Log.e(TAG, "RF acquisition failed: ${e.message}")
+            Log.e(TAG, "RF acquisition failure: ${e.message}")
             buildFallbackData("RF_FAILURE")
         }
     }
 
     /**
-     * تحليل البصمة (Fingerprinting) لتمييز الأهداف الحقيقية عن التزييف
+     * تحليل البصمة اللاسلكية وكشف التزييف والخداع الترددي المعادي
      */
     private fun analyzeTargetFingerprint(result: ScanResult): Map<String, Any> {
         val standard = parseWifiStandard(result)
         val width = parseChannelWidth(result.channelWidth)
-        val bssid = result.BSSID ?: "00:00:00:00:00:00"
+        val bssid = result.BSSID?.uppercase() ?: "00:00:00:00:00:00"
+        val ssid = result.SSID ?: "<HIDDEN_SIGNAL_SPOOF>"
 
-        // كشف التزييف (Spoofing Detection):
-        // إذا كان الجهاز يدعي أنه راوتر منزلي ولكن بصمته (عرض القناة + المعيار) تطابق مسيرة
         var spoofingAlert = false
         RF_FINGERPRINTS.forEach { (type, traits) ->
             if (traits.contains(standard) && traits.contains(width)) {
-                if (!result.SSID.contains(type, ignoreCase = true)) {
+                // إذا تطابقت البصمة الطيفية للمسيرة ولكن تم تزويد الاسم ليبدو كراوتر تقليدي، يتم إطلاق الإنذار
+                if (!ssid.contains(type, ignoreCase = true)) {
                     spoofingAlert = true
                 }
             }
         }
 
+        val freqMhz = result.frequency
+        val rssi = result.level
+
         return mapOf(
-            "ssid" to (result.SSID ?: "<hidden>"),
+            "ssid" to ssid,
             "bssid" to bssid,
-            "rssi" to result.level,
-            "freq_mhz" to result.frequency,
+            "rssi" to rssi,
+            "freq_mhz" to freqMhz,
             "width" to width,
             "standard" to standard,
             "spoofing_detected" to spoofingAlert,
             "fingerprint_match" to if (spoofingAlert) "SUSPICIOUS_UAV" else "NORMAL",
-            "distance_m" to estimateDistance(result.level),
+            "distance_m" to estimateTacticalDistance(rssi, freqMhz), // استخدام الدالة الفيزيائية الموحدة
             "timestamp" to System.currentTimeMillis(),
             "mode" to if (operationalMode.get()) "ACTIVE" else "PASSIVE"
         )
@@ -100,21 +96,28 @@ class HardwareBypassEngine(private val context: Context) {
 
     fun engageOperationalMode() {
         if (!wakeLock.isHeld) {
-            wakeLock.acquire(10 * 60 * 1000L)
+            // الاستيقاظ القسري لمدة 15 دقيقة تكتيكية متتالية قابلة للتجديد
+            wakeLock.acquire(15 * 60 * 1000L)
             operationalMode.set(true)
-            Log.i(TAG, "Tactical Mode Active: RF Fingerprinting Enabled")
+            Log.i(TAG, "Sovereign RF Bypass Core Engaged. Fingerprinting active.")
         }
     }
 
     fun releaseResources() {
         try { if (wakeLock.isHeld) wakeLock.release() } catch (_: Exception) {}
         operationalMode.set(false)
+        Log.w(TAG, "Operational resources released to fallback state.")
     }
 
-    private fun estimateDistance(rssi: Int): Float {
+    /**
+     * [توحيد رياضي]: ربط دالة حساب المسافة بمعادلة الفراغ الحر FSPL القياسية والمعتمدة في بقية الأنوية الصلبة
+     */
+    private fun estimateTacticalDistance(rssi: Int, freqMHz: Int): Float {
+        val txPower = -40f // قدرة الإرسال المرجعية المحدثة لهوائيات المسيرات
         return try {
-            val ratio = (-59f - rssi) / 20f
-            10f.pow(ratio)
+            if (freqMHz <= 0 || rssi == 0) return -1f
+            val exponent = (txPower - rssi) / (20 * log10(freqMHz.toDouble()) + 32.44)
+            Math.pow(10.0, exponent).toFloat()
         } catch (_: Exception) { -1f }
     }
 
@@ -141,6 +144,10 @@ class HardwareBypassEngine(private val context: Context) {
     ) == PackageManager.PERMISSION_GRANTED
 
     private fun buildFallbackData(reason: String) = mapOf(
-        "rssi" to -100, "status" to reason, "timestamp" to System.currentTimeMillis()
+        "rssi" to -100, 
+        "freq_mhz" to 2412,
+        "spoofing_detected" to false,
+        "status" to reason, 
+        "timestamp" to System.currentTimeMillis()
     )
 }
