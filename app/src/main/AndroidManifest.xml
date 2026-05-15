@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.jamesfirstok.aegis">
 
     <!-- ============================================================
-         تصاريح الشبكة والواي فاي
+         تصاريح الشبكة والواي فاي العسكرية
          ============================================================ -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -11,22 +12,22 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
 
     <!-- ============================================================
-         تصاريح الموقع (مطلوبة لمسح Wi‑Fi و BLE)
+         تصاريح الموقع والوعي الجغرافي (مطلوبة للـ GNSS والـ SDR)
          ============================================================ -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <!-- ============================================================
-         بلوتوث (قديم + جديد) – تغطية أندرويد 8 إلى 15
+         بلوتوث وتتبع النبضات اللاسلكية – تغطية أندرويد 8 إلى 15 المحدثة
          ============================================================ -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
 
     <!-- ============================================================
-         صوت، اهتزاز، طاقة، إقلاع
+         حساسات الأمان المادية، الاهتزاز التكتيكي، وإدارة استدامة الطاقة
          ============================================================ -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
@@ -35,92 +36,85 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <!-- ============================================================
-         خدمات أمامية (مطلوبة لأندرويد 14+)
+         إعلان الخدمات الأمامية غير القابلة للقتل (متوافق مع أندرويد 14 و 15)
          ============================================================ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
 
     <!-- ============================================================
-         صلاحيات النظام (فقط للأجهزة الموقعة بمفتاح النظام)
+         صلاحيات تخطي قيود النظام وحماية الروت للأجهزة الموقعة سيادياً
          ============================================================ -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions"/>
     <uses-permission android:name="android.permission.DEVICE_POWER" tools:ignore="ProtectedPermissions"/>
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" tools:ignore="ProtectedPermissions"/>
 
     <!-- ============================================================
-         التطبيق
+         [تعديل حاسم]: ميزات العتاد الإلزامية للتعرف على عتاد الراديو الخارجي SDR
          ============================================================ -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="true" />
+    <uses-feature android:name="android.hardware.wifi" android:required="true" />
+
     <application
         android:name=".AegisApplication"
         android:allowBackup="false"
         android:extractNativeLibs="true"
         android:hardwareAccelerated="true"
-        android:label="@string/app_name"
-        android:networkSecurityConfig="@xml/network_security_config"
-        android:theme="@style/Theme.Aegis"
+        android:label="AEGIS SOVEREIGN"
+        android:theme="@style/Theme.Material3.Dark"
         android:usesCleartextTraffic="true">
 
-        <!-- النشاط الرئيسي -->
+        <!-- النشاط الرئيسي وواجهة القيادة والسيطرة الرادارية -->
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenSize"
-            android:exported="true">
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- [تعديل عملياتي]: حقن مستشعر الإيقاظ التلقائي للتطبيق فور إدخال كابل الـ SDR بالـ USB -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
         </activity>
 
-        <!-- نشاطات إضافية -->
         <activity android:name=".DashboardActivity" android:exported="false"/>
         <activity android:name=".RadarActivity" android:exported="false"/>
-        <activity android:name=".AboutActivity" android:exported="false"/>
         <activity android:name=".SettingsActivity" android:exported="false"/>
 
-        <!-- خدمات المنظومة -->
+        <!-- [تحديث جوهري للمسميات]: خدمة العمليات والرصد والتشويش الموحدة المحصنة والميدانية -->
         <service
-            android:name=".service.AegisService"
+            android:name=".core.AegisOperationalService"
+            android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice|location|microphone"/>
+            android:foregroundServiceType="connectedDevice|location" />
 
-        <!-- الخدمة التكتيكية المدمجة الجديدة -->
-        <service
-            android:name=".service.TacticalRadarService"
-            android:foregroundServiceType="specialUse"
-            android:exported="false">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Tactical radar fusion"/>
-        </service>
-
-        <service
-            android:name=".service.RadarService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Radar processing"/>
-        </service>
-
+        <!-- خدمة معالجة الإشارات المتدفقة وبث الـ JSON لـ HUD -->
         <service
             android:name=".service.LiveRadarService"
+            android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Live radar processing"/>
+                android:value="Live spectrum processing and HUD data streaming"/>
         </service>
 
+        <!-- خدمة مزامنة التكوين وإرسال التليميتري عبر الأقمار الصناعية -->
         <service
             android:name=".service.SatelliteUplinkService"
             android:exported="false"
             android:foregroundServiceType="dataSync"/>
 
-        <!-- مستقبل الإقلاع التلقائي -->
+        <!-- مستقبل الإقلاع والإيقاظ الآلي للمنظومة عند تشغيل الهاتف -->
         <receiver
             android:name=".receiver.BootReceiver"
             android:exported="false">
