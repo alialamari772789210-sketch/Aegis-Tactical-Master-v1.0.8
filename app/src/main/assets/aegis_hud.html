@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Tactical HUD v7.2.8 // Operational Core</title>
+    <style>
+        body {
+            background-color: #000; color: #00CCFF;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0; overflow: hidden; display: flex;
+            flex-direction: column; align-items: center;
+            justify-content: center; height: 100vh;
+            background-image: radial-gradient(circle, rgba(0, 204, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        .tactical-hud {
+            border: 2px solid #00CCFF; padding: 20px;
+            box-shadow: inset 0 0 15px rgba(0, 204, 255, 0.2), 0 0 25px rgba(0, 204, 255, 0.3);
+            background: rgba(0, 10, 20, 0.95); position: relative;
+            width: 90%; max-width: 800px; text-align: center; border-radius: 2px;
+        }
+        h1 {
+            font-size: 1rem; letter-spacing: 3px; text-shadow: 0 0 10px #00CCFF;
+            margin: 0 0 15px 0; border-bottom: 1px solid rgba(0, 204, 255, 0.4);
+            padding-bottom: 8px; display: flex; justify-content: space-between;
+        }
+        #signalMatrix { background: #000; border: 1px solid rgba(0, 204, 255, 0.2); width: 100%; height: 200px; display: block; }
+        .telemetry-readout { display: flex; justify-content: space-between; margin-top: 15px; font-size: 0.75rem; text-transform: uppercase; text-align: left; }
+        .data-box { flex: 1; padding: 5px; }
+        .commander-info { flex: 1; text-align: right; border-left: 1px dashed rgba(0, 204, 255, 0.3); padding-left: 15px; }
+        .status-glow { animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px #00CCFF); }
+            50% { opacity: 0.7; filter: drop-shadow(0 0 2px #00CCFF); }
+        }
+        .neutralize-btn {
+            margin-top: 20px; padding: 10px 25px; background-color: #700; color: #fff;
+            border: 2px solid #f00; font-weight: bold; cursor: pointer; letter-spacing: 2px;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); transition: 0.3s;
+        }
+        .neutralize-btn:hover { background-color: #f00; box-shadow: 0 0 20px #f00; }
+        .architect-seal { margin-top: 15px; font-size: 0.6rem; color: rgba(0, 204, 255, 0.5); letter-spacing: 2px; border-top: 1px solid rgba(0, 204, 255, 0.2); padding-top: 5px; }
+        .value { color: #FFF; font-weight: bold; }
+        .gold { color: #FFD700; }
+        .green { color: #00FF00; }
+        #audioInit { position: absolute; top: 10px; right: 10px; font-size: 0.5rem; color: #555; cursor: pointer; border: 1px solid #333; padding: 2px; }
+    </style>
+</head>
+<body>
+    <div id="audioInit" onclick="initAcousticMatrix()">INITIALIZE AUDIO</div>
+    <div class="tactical-hud">
+        <h1 class="status-glow">
+            <span id="systemStatusHeader">AEGIS SYSTEM ACTIVE</span>
+            <span id="clock">00:00:00</span>
+        </h1>
+        <canvas id="signalMatrix"></canvas>
+        <div class="telemetry-readout">
+            <div class="data-box">
+                <p>📡 SIGNAL: <span id="signalVal" class="value">SCANNING...</span></p>
+                <p>🛡️ CORE: <span id="coreStatus" class="green">ENCRYPTED</span></p>
+                <p>🛰️ SAT-LINK: <span id="satStatus" class="value">DELTA-992</span></p>
+            </div>
+            <div class="commander-info">
+                <p>ARCHITECT: <span id="commanderName" class="value">ALI AL-AMMARI</span></p>
+                <p>RANK: <span class="gold">COLONEL (ENG)</span></p>
+                <p>SECTOR: <span class="value">AL-DHALEA</span></p>
+            </div>
+        </div>
+        <button class="neutralize-btn" onclick="executeNeutralization()">FORCE LANDING / NEUTRALIZE</button>
+        <div class="architect-seal">SOVEREIGNTY PROTOCOL v7.2.8 // ACOUSTIC MATRIX v2.3.2</div>
+    </div>
+    <script>
+        const canvas = document.getElementById('signalMatrix'); const ctx = canvas.getContext('2d');
+        let audioInitialized = false; let currentSignalPercent = 30; let currentThreatCount = 0;
+        let currentStrongestSSID = ""; let wavePhase = 0; let lastReportedThreatCount = 0;
+        const AcousticMatrix = {
+            voice: window.speechSynthesis, config: { rate: 0.85, pitch: 0.9, lang: 'ar-SA' },
+            speak: function(text) { if (this.voice.speaking) this.voice.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = this.config.lang; utterance.rate = this.config.rate; utterance.pitch = this.config.pitch; this.voice.speak(utterance); },
+            triggerGreeting: function(name) { this.speak(`سيادة العقيد ${name}، نظام إيجيس جاهز للعمل وتحت أمرك. مصفوفة الصوت نشطة.`); },
+            triggerAlert: function(level, count) { this.speak(`تحذير، تم رصد تهديد مؤكد في القطاع، العدد الحالي ${count} أهداف لاسلكية.`); }
+        };
+        function executeNeutralization() {
+            if(window.AegisBridge && window.AegisBridge.executeManualOverride) {
+                window.AegisBridge.executeManualOverride();
+                AcousticMatrix.speak("تم تفعيل بروتوكول التحييد القسري. جارِ حجب وحقن الترددات الحيوية والسيطرة التامة.");
+                document.getElementById('coreStatus').innerText = "ENGAGED / JAMMING"; document.getElementById('coreStatus').style.color = "#FF0000";
+                document.getElementById('systemStatusHeader').innerText = "ATTACK PROTOCOL ENGAGED"; document.getElementById('systemStatusHeader').style.color = "#FF0000";
+            } else {
+                AcousticMatrix.speak("تنبيه: الجسر غير متصل. يعمل النظام في وضع المحاكاة.");
+                document.getElementById('coreStatus').innerText = "LOCAL_ENGAGEMENT"; document.getElementById('coreStatus').style.color = "#FF9900";
+            }
+        }
+        function initAcousticMatrix() { if(!audioInitialized) { audioInitialized = true; document.getElementById('audioInit').style.display = 'none'; AcousticMatrix.triggerGreeting("علي العماري"); } }
+        function resizeCanvas() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas();
+        function fetchLiveData() {
+            if (window.AegisBridge && window.AegisBridge.getLatestSignalData) {
+                try {
+                    const raw = window.AegisBridge.getLatestSignalData(); const data = JSON.parse(raw);
+                    currentSignalPercent = data.signal || 0; currentThreatCount = data.threatCount || 0;
+                    currentStrongestSSID = (data.threats && data.threats.length > 0) ? data.threats[0].ssid : "";
+                    if (currentThreatCount > lastReportedThreatCount && audioInitialized) { AcousticMatrix.triggerAlert("CRITICAL", currentThreatCount); }
+                    if (currentThreatCount > 0) {
+                        document.getElementById('coreStatus').innerText = "THREAT DETECTED"; document.getElementById('coreStatus').style.color = "#f00";
+                    } else {
+                        document.getElementById('coreStatus').innerText = "ENCRYPTED"; document.getElementById('coreStatus').style.color = "#00FF00";
+                    }
+                    lastReportedThreatCount = currentThreatCount;
+                } catch(e) {}
+            }
+        }
+        setInterval(fetchLiveData, 400);
+        function drawSignal() {
+            ctx.fillStyle = 'rgba(0, 5, 10, 0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'rgba(0, 204, 255, 0.03)'; ctx.lineWidth = 1;
+            for(let x = 0; x < canvas.width; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+            ctx.lineWidth = 2; ctx.shadowBlur = currentThreatCount > 0 ? 15 : 6;
+            ctx.shadowColor = currentThreatCount > 0 ? '#FF0000' : '#00CCFF'; ctx.strokeStyle = currentThreatCount > 0 ? '#FF3333' : '#00CCFF';
+            ctx.beginPath(); const midY = canvas.height / 2; const amplitude = (currentSignalPercent / 100) * (canvas.height / 2.2);
+            for (let i = 0; i < canvas.width; i += 8) {
+                let dynamicFactor = Math.sin(i * 0.03 + wavePhase) * Math.cos(i * 0.01 + wavePhase);
+                let h = amplitude * (dynamicFactor * 0.6 + 0.4);
+                if (currentThreatCount > 0) h += (Math.random() - 0.5) * 20;
+                ctx.moveTo(i, midY - h); ctx.lineTo(i, midY + h);
+            }
+            ctx.stroke(); wavePhase += (currentSignalPercent / 100) * 0.1 + 0.02;
+            let labelText = currentSignalPercent + "%";
+            if (currentThreatCount > 0) labelText = "💥 " + currentSignalPercent + "% [LOCK: " + currentStrongestSSID + "]";
+            document.getElementById('signalVal').innerText = labelText;
+            document.getElementById('clock').innerText = new Date().toTimeString().split(' ')[0];
+        }
+        setInterval(drawSignal, 100);
+    </script>
+</body>
+</html>
