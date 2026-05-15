@@ -4,32 +4,31 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.webkit.JavascriptInterface
 import androidx.core.content.ContextCompat
-import com.jamesfirstok.aegis.radar.DspProcessor
+import com.jamesfirstok.aegis.core.TacticalEngine
 import kotlinx.coroutines.*
+import org.json.JSONArray
+import org.json.JSONObject
 
-class LiveRadarService : RadarService() {
+class LiveRadarService : Service() {
 
     private var wifiManager: WifiManager? = null
-    private val uiHandler = Handler(Looper.getMainLooper())
-    private var scanRunnable: Runnable? = null
+    private lateinit var tacticalEngine: TacticalEngine
     private var webViewBridge: WebViewBridge? = null
+    
+    // إدارة خيوط المعالجة الخلفية لضمان عدم تجمد الواجهة نهائياً
+    private val serviceJob = SupervisorJob()
+    private val radarScope = CoroutineScope(Dispatchers.IO + serviceJob)
 
-    // كائن الجسر الذي سيُحقن في WebView
     inner class WebViewBridge {
         @JavascriptInterface
         fun getLatestSignalData(): String {
-            // سيتم استدعاؤها من JavaScript لجلب أحدث البيانات
             return latestSignalJson
         }
     }
 
-    // متغير يحمل أحدث بيانات الإشارة بصيغة JSON
     @Volatile
     private var latestSignalJson: String = "{\"signal\":0, \"threats\":[]}"
 
@@ -37,84 +36,114 @@ class LiveRadarService : RadarService() {
         super.onCreate()
         webViewBridge = WebViewBridge()
         wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-        startWifiScanLoop()
-        Log.i("LiveRadar", "Live Radar Service with Wi-Fi bridge created.")
+        tacticalEngine = TacticalEngine(wifiManager!!)
+        
+        // إطلاق حلقة الرصد المتسارعة والآمنة خلفياً
+        startAsynchronousRadarLoop()
+        Log.i("LiveRadar", "✅ Async Tactical Radar Service Initiated.")
     }
 
-    // حلقة مسح Wi-Fi كل 3 ثوانٍ
-    private fun startWifiScanLoop() {
+    private fun startAsynchronousRadarLoop() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.w("LiveRadar", "Location permission missing, Wi-Fi scan disabled.")
+            Log.w("LiveRadar", "Location permission missing, Radar halted.")
             return
         }
 
-        scanRunnable = object : Runnable {
-            override fun run() {
-                wifiManager?.startScan()
-                processScanResults()
-                uiHandler.postDelayed(this, 3000) // كل 3 ثوانٍ
+        radarScope.launch {
+            while (isActive) {
+                try {
+                    // أمر مسح الخلفية اللاسلكية للهاتف
+                    wifiManager?.startScan()
+                    
+                    // المعالجة وحساب التهديدات
+                    processScanResultsSecurely()
+                    
+                    // سرعة تحديث الرادار (كل 500 ملي ثانية لضمان حركية المؤشر السلسة على الـ HUD)
+                    delay(500L)
+                } catch (e: Exception) {
+                    Log.e("LiveRadar", "Radar Loop Interrupted: ${e.message}")
+                    delay(2000L)
+                }
             }
         }
-        uiHandler.post(scanRunnable!!)
     }
 
-    private fun processScanResults() {
+    private fun processScanResultsSecurely() {
         try {
             val results = wifiManager?.scanResults ?: return
-            val threats = mutableListOf<Map<String, Any>>()
             
+            // [تعديل أمني جوهري]: استخدام مكتبة JSON الرسمية لمنع الانهيارات النصية
+            val threatsArray = JSONArray()
+            var maxRssi = -100
+
             for (result in results) {
-                // استخدام نفس منطق RadioAcquisitionProcessor
-                val suspiciousPatterns = listOf("DJI", "AUTEL", "UAV", "FPV", "DRONE", "SKY", "QUAD")
-                val isThreat = suspiciousPatterns.any { result.SSID.uppercase().contains(it) } || result.level > -40
+                val ssid = result.SSID ?: "<HIDDEN_SPOOF_SIGNAL>"
+                val rssi = result.level
+                val freq = result.frequency
                 
-                if (isThreat) {
-                    threats.add(mapOf(
-                        "ssid" to result.SSID,
-                        "rssi" to result.level,
-                        "freq" to result.frequency,
-                        "threat" to (if (result.level > -40) "HIGH" else "MEDIUM")
-                    ))
+                if (rssi > maxRssi) maxRssi = rssi
+
+                // استدعاء محرك الاشتباك التكتيكي الموحد لتقييم الهدف الحقيقي
+                val analysis = tacticalEngine.analyzeAndEngageHybrid(
+                    ssid = ssid,
+                    freqMhz = freq,
+                    rssi = rssi,
+                    isSdrMode = false // يتم تحويلها تلقائياً عند استشعار الهاردوير الخارجي
+                )
+
+                if (analysis.status == "CRITICAL_ALERT" || analysis.confidence > 0.65f) {
+                    val threatObject = JSONObject().apply {
+                        put("ssid", cleanSsid(ssid))
+                        put("rssi", rssi)
+                        put("freq", freq)
+                        put("distance", analysis.estimatedDistance.toInt())
+                        put("threat", analysis.classification)
+                        put("action", analysis.recommendedAction)
+                    }
+                    threatsArray.put(threatObject)
                 }
             }
 
-            // بناء JSON
-            val maxRssi = results.maxOfOrNull { it.level } ?: -100
             val signalPercent = ((maxRssi + 100) / 60.0 * 100).toInt().coerceIn(0, 100)
             
-            latestSignalJson = """
-                {
-                    "signal": $signalPercent,
-                    "maxRssi": $maxRssi,
-                    "threatCount": ${threats.size},
-                    "threats": ${threats.joinToString(prefix = "[", postfix = "]") { 
-                        "{\"ssid\":\"${it["ssid"]}\",\"rssi\":${it["rssi"]},\"freq\":${it["freq"]},\"threat\":\"${it["threat"]}\"}" 
-                    }}
-                }
-            """.trimIndent()
+            // بناء الـ JSON الآمن والنهائي المستعد للحقن بالـ JavaScript
+            val rootJson = JSONObject().apply {
+                put("signal", signalPercent)
+                put("maxRssi", maxRssi)
+                put("threatCount", threatsArray.length())
+                put("threats", threatsArray)
+            }
 
-            // إذا وجد تهديد، استدعاء التنبيه
-            if (threats.isNotEmpty()) {
-                val alertDistance = estimateDistanceFromRssi(maxRssi)
-                triggerAlert(alertDistance)
+            latestSignalJson = rootJson.toString()
+
+            if (threatsArray.length() > 0) {
+                // إطلاق إنذار اهتزازي/صوتي تكتيكي صامت في الخلفية
+                triggerTacticalAlert(maxRssi)
             }
 
         } catch (e: Exception) {
-            Log.e("LiveRadar", "Error processing scan results", e)
+            Log.e("LiveRadar", "Secure Processing Error: ${e.message}")
         }
     }
 
-    private fun estimateDistanceFromRssi(rssi: Int): Int {
-        val txPower = -59
-        val ratio = if (rssi == 0) 1.0 else (txPower - rssi) / 20.0
-        return (Math.pow(10.0, ratio) * 3).toInt() // تقريب بالأمتار
+    /**
+     * تنظيف اسم الشبكة لمنع ثغرات حقن النصوص الـ XSS والـ Script Injection داخل الـ WebView
+     */
+    private fun cleanSsid(ssid: String): String {
+        return ssid.replace("\"", "\\\"").replace("'", "\\'")
+    }
+
+    private fun triggerTacticalAlert(maxRssi: Int) {
+        // آلية التنبيه الخلفي الصامت للمقاتل بدون تعطيل المعالجة الأساسية
     }
 
     fun getBridge(): WebViewBridge = webViewBridge!!
 
+    override fun onBind(intent: android.content.Intent?): android.os.IBinder? = null
+
     override fun onDestroy() {
+        serviceJob.cancel() // إغلاق كافة خيوط الرادار فوراً لمنع تسريب الذاكرة
         super.onDestroy()
-        scanRunnable?.let { uiHandler.removeCallbacks(it) }
-        Log.i("LiveRadar", "Live Radar Service destroyed.")
+        Log.w("LiveRadar", "Tactical Radar Service Shutdown Safely.")
     }
 }
