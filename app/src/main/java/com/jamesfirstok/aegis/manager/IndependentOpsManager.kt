@@ -1,6 +1,7 @@
 package com.jamesfirstok.aegis.manager
 
 import android.content.Context
+import android.net.wifi.WifiManager
 import android.util.Log
 import com.jamesfirstok.aegis.core.HardwareBypassEngine
 import com.jamesfirstok.aegis.model.SecurityModel
@@ -8,8 +9,11 @@ import com.jamesfirstok.aegis.tactical.RadioAcquisitionProcessor
 import java.io.File
 
 /**
- * AEGIS INDEPENDENT OPERATIONS MANAGER v5.0
- * إدارة العمليات المستقلة وبروتوكولات التطهير النهائي (VOID-ZERO).
+ * ============================================================================
+ * AEGIS INDEPENDENT OPERATIONS MANAGER v5.2 - COMMAND & CONTROL
+ * ============================================================================
+ * إدارة العمليات المستقلة، توحيد نبضات الرصد، وبروتوكولات التطهير النهائي المادي
+ * ============================================================================
  */
 class IndependentOpsManager(
     private val context: Context,
@@ -17,30 +21,34 @@ class IndependentOpsManager(
     private val bypassEngine: HardwareBypassEngine
 ) {
     private var currentMissionStatus = "STANDBY"
-    private val radioProcessor = RadioAcquisitionProcessor(context)
+    
+    // [تصحيح هندسي حاسم]: استدعاء الـ WifiManager وتمريره للمشيد الموحد لمعالج الالتقاط اللاسلكي
+    private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+    private val radioProcessor = RadioAcquisitionProcessor(context, wifiManager)
 
     /**
-     * بدء عملية الاستطلاع المستقلة وتفعيل وضع الأداء الأقصى.
+     * بدء عملية الاستطلاع المستقلة وتفعيل وضع الأداء الأقصى للبطارية والعتاد
      */
-    fun startAutonomousRecon() {
+    fun startAutonomousRecon(isSdrActive: Boolean, rawSdrBuffer: DoubleArray? = null) {
         currentMissionStatus = "ACTIVE_RECON"
-        bypassEngine.engageCombatMode()
         
-        Log.i("AEGIS_OPS", "Autonomous Recon In-Progress...")
-        initiateLocalSignalAnalysis()
+        // [تصحيح الدالة المتناقضة]: تفعيل وضع الاستيقاظ عالي الكثافة للـ WakeLock
+        bypassEngine.engageOperationalMode()
+        
+        Log.i("AEGIS_OPS", "Autonomous Recon In-Progress. Mode [SDR:$isSdrActive]")
+        initiateLocalSignalAnalysis(isSdrActive, rawSdrBuffer)
     }
 
-    private fun initiateLocalSignalAnalysis() {
+    private fun initiateLocalSignalAnalysis(isSdrActive: Boolean, rawSdrBuffer: DoubleArray?) {
         try {
-            // تنفيذ مسح ترددات شامل وتحليل مستوى التهديد
-            val targets = radioProcessor.executeFullScan()
+            // [تصحيح سيل البيانات]: تمرير بارامترات الوضع الهجين لضمان عدم تعمية رقاقات الـ SDR
+            val targets = radioProcessor.executeFullScan(isSdrActive, rawSdrBuffer)
             
             if (targets.isNotEmpty()) {
                 val topThreat = targets.maxByOrNull { it.threatScore }
                 
-                // إذا تجاوز التهديد العتبة الحرجة (مثلاً إشارة تشويش معادية قوية)
                 if (topThreat != null && topThreat.threatScore > 0.85f) {
-                    Log.w("AEGIS_OPS", "CRITICAL THREAT DETECTED: Score ${topThreat.threatScore}")
+                    Log.w("AEGIS_OPS", "⚠️ [CRITICAL LOCK] Core threat verified: Score ${topThreat.threatScore}")
                     currentMissionStatus = "CRITICAL"
                     triggerCriticalDefense()
                 }
@@ -51,33 +59,34 @@ class IndependentOpsManager(
     }
 
     /**
-     * بروتوكول VOID-ZERO: التدمير الذاتي الرقمي.
-     * يتم استدعاؤه فقط عند استشعار محاولة اختراق فيزيائي أو خطر داهم.
+     * بروتوكول VOID-ZERO: التدمير الذاتي الرقمي ومسح الآثار الفيزيائية من الذاكرة والتخزين الصلب
      */
     fun triggerCriticalDefense() {
         if (currentMissionStatus != "CRITICAL") return
 
-        Log.e("AEGIS_OPS", "!!! EXECUTING VOID-ZERO PROTOCOL !!!")
+        Log.e("AEGIS_OPS", "!!! EXECUTING VOID-ZERO COGNITIVE PURGE PROTOCOL !!!")
 
         try {
-            // 1. تدمير قواعد البيانات المحلية والمفاتيح التكتيكية
-            val internalFiles = context.filesDir.parentFile?.listFiles()
-            internalFiles?.forEach { folder ->
-                if (folder.name == "databases" || folder.name == "shared_prefs" || folder.name == "workspace") {
+            // 1. التدمير المنظم والمضمون للمجلدات التكتيكية وقواعد البيانات المحلية المخزنة
+            val baseDir = context.filesDir.parentFile
+            val targetFolders = listOf("databases", "shared_prefs", "no_backup")
+            
+            targetFolders.forEach { folderName ->
+                val folder = File(baseDir, folderName)
+                if (folder.exists()) {
                     folder.deleteRecursively()
-                    Log.d("AEGIS_OPS", "Purged: ${folder.name}")
+                    Log.d("AEGIS_OPS", "[VOID-ZERO] Purged physical sector: $folderName")
                 }
             }
 
-            // 2. إبلاغ الـ SecurityModel بتعطيل الوصول الدائم
-            securityModel.invalidateAllTokens()
-
-            // 3. إنهاء العملية فوراً لمسح آثار الذاكرة العشوائية (RAM)
+            // 2. [تصحيح الروابط]: استدعاء دالة التطهير المادي والتصفيري الموحدة للـ RAM والقتل الفوري للعملية
             currentMissionStatus = "TERMINATED"
-            android.os.Process.killProcess(android.os.Process.myPid())
+            securityModel.executeProtocolVoidZero()
             
         } catch (e: Exception) {
-            Log.e("AEGIS_OPS", "VOID-ZERO Partial Failure: ${e.message}")
+            Log.e("AEGIS_OPS", "VOID-ZERO Emergency Fallback Loop Failure: ${e.message}")
+            // خروج اضطراري نهائي لمنع المهاجم من تعطيل القتل الفوري
+            android.os.Process.killProcess(android.os.Process.myPid())
         }
     }
 
