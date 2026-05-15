@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- الألوان الأساسية للمنظومة الصامتة -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    
+    <!-- [إضافة تكتيكية]: توحيد ألوان الهوية البصرية للرادار مع واجهة الـ HUD -->
+    <color name="tactical_cyan">#00CCFF</color>
+    <color name="combat_red">#FF3333</color>
+    <color name="stealth_green">#00FF00</color>
+</resources>
