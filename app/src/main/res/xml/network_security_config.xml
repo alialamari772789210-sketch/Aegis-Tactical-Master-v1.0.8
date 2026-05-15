@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- حصر حركة البيانات اللاسلكية المفتوحة (Cleartext) على المنافذ الداخلية للهاتف فقط -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+    
+    <!-- حظر حظر صارم وشامل لأي اتصال خارجي غير مرخص عبر الإنترنت لسرية العمليات -->
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>
