@@ -7,139 +7,63 @@ import java.io.FileInputStream
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
-data class ThreatPrediction(
-    val classId: Int,
-    val confidence: Float,
-    val probabilities: FloatArray
-)
+data class ThreatPrediction(val classId: Int, val confidence: Float, val probabilities: FloatArray)
 
 class AegisAIAnalyzer(context: Context) {
     private var interpreter: Interpreter? = null
-    private val modelLoaded: Boolean
+    private var modelLoaded: Boolean = false
     private var inputShape: IntArray = intArrayOf(1, 64)
-    private var outputShape: IntArray = intArrayOf(1, 4)
 
     init {
-        modelLoaded = try {
-            interpreter = Interpreter(loadModelFile(context, "1.tflite"))
+        try {
+            val options = Interpreter.Options().apply { setNumThreads(4); setUseNNAPI(true) }
+            interpreter = Interpreter(loadModelFile(context, "1.tflite"), options)
             interpreter?.allocateTensors()
-            
-            // قراءة أبعاد النموذج الفعلية
-            val inputTensor = interpreter?.getInputTensor(0)
-            val outputTensor = interpreter?.getOutputTensor(0)
-            
-            inputShape = inputTensor?.shape() ?: intArrayOf(1, 64)
-            outputShape = outputTensor?.shape() ?: intArrayOf(1, 4)
-            
-            Log.i("AegisAI", "✅ TFLite model loaded: 1.tflite")
-            Log.i("AegisAI", "   Input shape: ${inputShape.joinToString()}")
-            Log.i("AegisAI", "   Output shape: ${outputShape.joinToString()}")
-            true
-        } catch (e: Exception) {
-            Log.w("AegisAI", "⚠️ Model not found, using rule-based mode: ${e.message}")
-            false
-        }
+            inputShape = interpreter?.getInputTensor(0)?.shape() ?: intArrayOf(1, 64)
+            modelLoaded = true
+        } catch (e: Exception) { modelLoaded = false }
     }
 
-    /**
-     * تحميل النموذج من مجلد الأصول
-     */
     private fun loadModelFile(context: Context, modelName: String): MappedByteBuffer {
         val afd = context.assets.openFd(modelName)
-        val inputStream = FileInputStream(afd.fileDescriptor)
-        val fileChannel = inputStream.channel
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, afd.startOffset, afd.declaredLength)
+        return FileInputStream(afd.fileDescriptor).channel.map(FileChannel.MapMode.READ_ONLY, afd.startOffset, afd.declaredLength)
     }
 
-    /**
-     * تحليل التهديد: إذا النموذج موجود يستخدمه، وإلا يستخدم قواعد ثابتة.
-     */
     fun analyzeThreat(signalData: FloatArray): ThreatPrediction {
-        return if (modelLoaded) {
-            analyzeWithAI(signalData)
-        } else {
-            analyzeWithRules(signalData)
+        if (!modelLoaded) return analyzeWithRules(signalData)
+        val targetSize = inputShape.lastOrNull() ?: 64
+        val adaptedInput = adaptSignalToTargetSize(signalData, targetSize)
+        val normalizedInput = normalize(adaptedInput)
+        val output = Array(1) { FloatArray(4) }
+        interpreter?.run(arrayOf(normalizedInput), output)
+        val exp = output[0].map { kotlin.math.exp(it.toDouble()).toFloat() }
+        val sum = exp.sum().coerceAtLeast(1e-6f)
+        val soft = exp.map { it / sum }.toFloatArray()
+        val id = soft.indices.maxByOrNull { soft[it] } ?: 0
+        return ThreatPrediction(id, soft[id], soft)
+    }
+
+    private fun adaptSignalToTargetSize(data: FloatArray, targetSize: Int): FloatArray {
+        if (data.size == targetSize) return data
+        val adapted = FloatArray(targetSize)
+        val scale = data.size.toFloat() / targetSize.toFloat()
+        for (i in 0 until targetSize) {
+            val idx = (i * scale).toInt().coerceIn(0, data.size - 1)
+            adapted[i] = data[idx]
         }
+        return adapted
     }
 
-    /**
-     * التحليل باستخدام نموذج TFLite
-     */
-    private fun analyzeWithAI(signalData: FloatArray): ThreatPrediction {
-        val localInterpreter = requireNotNull(interpreter) { "Interpreter not initialized" }
-
-        // تجهيز الدخل: قص أو تمديد الإشارة لتطابق حجم دخل النموذج
-        val inputSize = inputShape.lastOrNull() ?: 64
-        val normalized = normalize(signalData)
-        val modelInput = prepareInput(normalized, inputSize)
-
-        // تحضير مصفوفة الخرج حسب شكل النموذج
-        val outputSize = outputShape.lastOrNull() ?: 4
-        val output = Array(1) { FloatArray(outputSize) }
-
-        localInterpreter.run(arrayOf(modelInput), output)
-
-        val probabilities = softmax(output[0])
-        val classId = probabilities.indices.maxByOrNull { probabilities[it] } ?: 0
-        val confidence = probabilities[classId]
-
-        return ThreatPrediction(classId, confidence, probabilities)
-    }
-
-    /**
-     * التحليل بالقواعد عندما لا يوجد نموذج
-     */
-    private fun analyzeWithRules(data: FloatArray): ThreatPrediction {
-        val energy = data.map { it * it }.average().toFloat()
-        val classId = if (energy > 0.5f) 1 else 0
-        val confidence = if (energy > 0.5f) 0.85f else 0.1f
-        val probabilities = FloatArray(4) { i ->
-            if (i == classId) confidence else (1f - confidence) / 3f
-        }
-        return ThreatPrediction(classId, confidence, probabilities)
-    }
-
-    /**
-     * تطبيع Z-Score
-     */
     private fun normalize(data: FloatArray): FloatArray {
-        if (data.isEmpty()) return FloatArray(64) { 0f }
         val mean = data.average().toFloat()
         val variance = data.map { (it - mean) * (it - mean) }.average().toFloat()
         val std = kotlin.math.sqrt(variance.coerceAtLeast(1e-6f))
-        return data.map { ((it - mean) / std) }.toFloatArray()
+        return data.map { (it - mean) / std }.toFloatArray()
     }
 
-    /**
-     * تحضير الدخل ليطابق حجم النموذج
-     */
-    private fun prepareInput(data: FloatArray, targetSize: Int): FloatArray {
-        return when {
-            data.size == targetSize -> data
-            data.size > targetSize -> data.copyOf(targetSize)
-            else -> {
-                val padded = FloatArray(targetSize)
-                System.arraycopy(data, 0, padded, 0, data.size)
-                padded
-            }
-        }
-    }
-
-    /**
-     * تحويل المخرجات إلى احتمالات
-     */
-    private fun softmax(values: FloatArray): FloatArray {
-        val max = values.maxOrNull() ?: 0f
-        val exp = values.map { kotlin.math.exp((it - max).toDouble()).toFloat() }
-        val sum = exp.sum().coerceAtLeast(1e-6f)
-        return exp.map { it / sum }.toFloatArray()
-    }
-
-    /**
-     * إغلاق المحلل وتحرير الموارد
-     */
-    fun close() {
-        interpreter?.close()
-        interpreter = null
+    private fun analyzeWithRules(data: FloatArray): ThreatPrediction {
+        val energy = data.map { it * it }.average().toFloat()
+        val id = if (energy > 0.6f) 2 else 0
+        return ThreatPrediction(id, 0.85f, FloatArray(4) { if (it == id) 0.85f else 0.05f })
     }
 }
