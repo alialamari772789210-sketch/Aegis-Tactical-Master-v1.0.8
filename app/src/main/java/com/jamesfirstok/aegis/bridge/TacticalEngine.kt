@@ -2,15 +2,9 @@ package com.jamesfirstok.aegis.core
 
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
-import kotlin.math.abs
+import android.util.Log
 import kotlin.math.log10
 import kotlin.math.pow
-
-/**
- * AEGIS TACTICAL ENGINE - COMBAT VERSION
- * المصمم: العقيد علي العماري
- * الربط بين التحليل الاستخباراتي (Kotlin) والتنفيذ الهجومي (C++)
- */
 
 data class ThreatAnalysis(
     val status: String,
@@ -23,37 +17,38 @@ data class ThreatAnalysis(
 
 class TacticalEngine(private val wifiManager: WifiManager) {
 
-    // الربط مع النواة الصلبة (C++) التي تحتوي على Hijacking & Jamming
+    // استدعاء قنوات التحكم والاختراق الناتجة من دوال الـ C++
     private external fun mavlinkOverride(lastSeq: Int): Boolean
     private external fun activateControlLoop(): Float
+    private external fun transmitSdrSirenJamming(freqMhz: Double): Boolean
 
     init {
-        System.loadLibrary("aegis-core")
+        try {
+            System.loadLibrary("aegis-core")
+            Log.i("TacticalEngine", "✅ Aegis Native Core C++ Libraries Engaged.")
+        } catch (e: UnsatisfiedLinkError) {
+            Log.e("TacticalEngine", "Critical: Native Binaries Missing: ${e.message}")
+        }
     }
 
     /**
-     * التحليل والاشتباك التلقائي
+     * التحليل والاشتباك التلقائي الموحد (يدعم إدخال بيانات الهاتف أو الـ SDR)
      */
-    fun analyzeAndEngage(scan: ScanResult): ThreatAnalysis {
-        val rssi = scan.level
-        val freqMhz = scan.frequency
-        val ssid = scan.SSID ?: "UNKNOWN"
-
+    fun analyzeAndEngageHybrid(ssid: String, freqMhz: Int, rssi: Int, isSdrMode: Boolean): ThreatAnalysis {
         val distance = estimateDistance(rssi, freqMhz)
-        val classification = classifySignal(ssid, freqMhz, rssi)
-        val confidence = calculateConfidence(classification, rssi, distance)
+        val classification = classifySignal(ssid, freqMhz, rssi, isSdrMode)
+        val confidence = calculateConfidence(classification, rssi, distance, isSdrMode)
 
         var isEngaged = false
         val action = decideAction(classification, confidence, distance)
 
-        // --- الانتقال من الرصد إلى الاشتباك (Engagement Logic) ---
-        // إذا كان التهديد "درون" مؤكد وبمسافة أقل من 50 متر، نفذ التحييد فوراً
-        if (confidence > 0.85f && distance < 50f) {
-            isEngaged = engageTarget()
+        // بروتوكول الاشتباك الصارم الميداني
+        if (confidence > 0.82f && distance < 70f) {
+            isEngaged = executeCombatNeutralization(freqMhz, isSdrMode)
         }
 
         return ThreatAnalysis(
-            status = if (confidence > 0.75f) "CRITICAL_ALERT" else "MONITORING",
+            status = if (confidence > 0.80f) "CRITICAL_ALERT" else "MONITORING",
             confidence = confidence,
             estimatedDistance = distance,
             classification = classification,
@@ -62,49 +57,59 @@ class TacticalEngine(private val wifiManager: WifiManager) {
         )
     }
 
-    private fun engageTarget(): Boolean {
+    private fun executeCombatNeutralization(frequencyMhz: Int, isSdrMode: Boolean): Boolean {
         return try {
-            // استدعاء النواة الصلبة للسيطرة على الرابط اللاسلكي
-            activateControlLoop() // ملاحقة القفز الترددي
-            mavlinkOverride(0)    // حقن أمر الهبوط القسري
+            if (isSdrMode) {
+                // [1. التحييد الحربي الكامل]: بث موجات تشويش كهرومغناطيسية عبر واجهة الـ SDR
+                transmitSdrSirenJamming(frequencyMhz.toDouble())
+                activateControlLoop()
+                mavlinkOverride(1)
+            } else {
+                // [2. التحييد السيبراني الخفيف]: محاولة حقن حزم قمعية عبر الرابط اللاسلكي الداخلي
+                activateControlLoop()
+                mavlinkOverride(0)
+            }
             true
         } catch (e: Exception) {
+            Log.e("TacticalEngine", "Combat Operation Fault: ${e.message}")
             false
         }
     }
 
     private fun estimateDistance(rssi: Int, freqMhz: Int): Float {
-        val txPower = -40 // مرجع قدرة الإرسال للمسيرات
+        val txPower = -40
         return try {
             val exponent = (txPower - rssi) / (20 * log10(freqMhz.toDouble()) + 32.44)
             10.0.pow(exponent).toFloat()
         } catch (e: Exception) { -1f }
     }
 
-    private fun classifySignal(ssid: String, freq: Int, rssi: Int): String {
+    private fun classifySignal(ssid: String, freq: Int, rssi: Int, isSdrMode: Boolean): String {
         val lower = ssid.lowercase()
-        val droneKeywords = listOf("dji", "mavic", "phantom", "fpv", "uav", "drone", "autel")
+        val droneKeywords = listOf("dji", "mavic", "phantom", "fpv", "uav", "drone", "autel", "skydio")
         
         return when {
+            isSdrMode -> "MILITARY_RF_THREAT_DETECTED" // أي إشارة ملتقطة بالـ SDR خارج النطاق المدني
             droneKeywords.any { lower.contains(it) } -> "POTENTIAL_DRONE_LINK"
-            freq in 5725..5850 && rssi > -50 -> "HIGH_POWER_UAV_VHF"
-            freq in 430000..440000 -> "SUSPECTED_JAMMER" // من الكود الأول
+            freq in 5725..5850 && rssi > -55 -> "HIGH_POWER_UAV_VHF"
+            freq in 430..440 -> "TACTICAL_LPD_JAMMER" // [تعديل فيزيائي]: فحص نطاق الـ 433 ميجاهرتز الفعلي
             else -> "NON_THREAT_WIFI"
         }
     }
 
-    private fun calculateConfidence(cls: String, rssi: Int, dist: Float): Float {
+    private fun calculateConfidence(cls: String, rssi: Int, dist: Float, isSdrMode: Boolean): Float {
         var score = 0.2f
-        if (cls == "POTENTIAL_DRONE_LINK" || cls == "SUSPECTED_JAMMER") score += 0.5f
-        if (rssi > -60) score += 0.2f
-        if (dist in 1f..100f) score += 0.1f
+        if (isSdrMode) score += 0.6f
+        if (cls == "POTENTIAL_DRONE_LINK" || cls == "TACTICAL_LPD_JAMMER") score += 0.4f
+        if (rssi > -55) score += 0.2f
+        if (dist in 0.5f..120f) score += 0.1f
         return score.coerceIn(0f, 1f)
     }
 
     private fun decideAction(cls: String, conf: Float, dist: Float): String {
         return when {
-            conf > 0.8f && dist < 30f -> "IMMEDIATE_NEUTRALIZATION"
-            conf > 0.6f -> "ACTIVE_TRACKING"
+            conf > 0.8f && dist < 50f -> "IMMEDIATE_NEUTRALIZATION"
+            conf > 0.5f -> "ACTIVE_TRACKING"
             else -> "PASSIVE_SURVEILLANCE"
         }
     }
