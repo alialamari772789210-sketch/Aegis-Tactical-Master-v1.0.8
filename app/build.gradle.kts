@@ -56,7 +56,8 @@ android {
 // [تصحيح صياغة الحقن لمحرك بايثون]: دمج الخوارزميات التطورية لـ AegisAutonomousCore.py
 chaquopy {
     defaultConfig {
-        buildPython = listOf("3.10") // التهيئة البرمجية لتحديد رقم بايثون المدعوم عتادياً
+        // 🛠️ تم التعديل هنا ليعمل على السيرفر و Termux دون التضحية بالنسخة 3.10 المثبتة
+        buildPython("python3") 
         pip {
             install("numpy")
             install("pyserial")
