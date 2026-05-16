@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- [تصحيح التوافقية]: الاعتماد على الثيم الأساسي المتوفر في جميع إصدارات مكتبة Material 3 -->
-    <style name="Th_Aegis_Tactical_Master" parent="Theme.Material3.DayNight">
-        <!-- إخفاء شريط العنوان برمجياً وعبر الثيم بدلاً من الاعتماد على NoActionBar المحذوف -->
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
-        
+    <!-- [تصحيح شامل للتوافق السيادي]: الاعتماد على ثيم النظام الأساسي المحمي والمظلم لتجنب مشاكل الـ AAPT ومفقودات الماتيريال -->
+    <style name="Th_Aegis_Tactical_Master" parent="Theme.AppCompat.NoActionBar">
         <!-- جعل شريط الحالة علوياً صامتاً ومظلماً لمنع كشف موقع المقاتل بضوء الشاشة -->
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:windowBackground">@color/black</item>
