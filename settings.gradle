@@ -3,7 +3,7 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven { url = uri("https://chaquo.com/maven") } // أضف هذا السطر هنا
+        maven { url = uri("https://chaquo.com/maven") }
     }
 }
 dependencyResolutionManagement {
@@ -11,9 +11,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://chaquo.com/maven") } // أضف هذا السطر هنا أيضاً
-        maven { url 'https://jitpack.io' }
+        maven { url = uri("https://chaquo.com/maven") }
+        maven { url = uri("https://jitpack.io") } // 🛠️ تم تعديل الصيغة هنا لتتوافق مع Kotlin DSL
     }
 }
 rootProject.name = "Aegis-Tactical-Master"
-include ':app'
+include(":app")
