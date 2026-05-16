@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- [تصحيح شامل للتوافق السيادي]: الاعتماد على ثيم النظام الأساسي المحمي والمظلم لتجنب مشاكل الـ AAPT ومفقودات الماتيريال -->
-    <style name="Th_Aegis_Tactical_Master" parent="Theme.AppCompat.NoActionBar">
+    <!-- [تصحيح نهائي وشامل]: الاعتماد على ثيم الجهاز الافتراضي المظلم والصامت المتوافق كاملاً مع Jetpack Compose -->
+    <style name="Th_Aegis_Tactical_Master" parent="@android:style/Theme.DeviceDefault.NoActionBar">
         <!-- جعل شريط الحالة علوياً صامتاً ومظلماً لمنع كشف موقع المقاتل بضوء الشاشة -->
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:windowBackground">@color/black</item>
