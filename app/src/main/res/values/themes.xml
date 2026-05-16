@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- [تصحيح الاسم]: توحيد مسمى الثيم ليتطابق بدقة مع ما تم إعلانه وتحصينه في المانيفست -->
-    <style name="Theme.Material3.Dark" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- [تحديث المسمى]: تم تعديل الاسم ليبدأ بـ Th بناءً على طلبك، مع الحفاظ على الأنوية المظلمة الصامتة -->
+    <style name="Th_Aegis_Tactical_Master" parent="Theme.Material3.Dark.NoActionBar">
         <!-- جعل شريط الحالة علوياً صامتاً ومظلماً لمنع كشف موقع المقاتل بضوء الشاشة -->
         <item name="android:statusBarColor">@color/black</item>
         <item name="android:windowBackground">@color/black</item>
