@@ -31,11 +31,11 @@ target_compile_options(aegis-core PRIVATE
     -fvisibility=hidden # إخفاء الرموز الداخلية للمكتبة لمنع رصد خوارزميات التحييد عبر الهندسة العكسية
 )
 
-# 🛠️ [إضافة استراتيجية]: تضمين مجلد ملفات الرأس (Headers) ليتعرف المترجم على <liquid/liquid.h>
-# يفترض هذا السطر أن مجلد liquid الذي يحتوي على ملف liquid.h متواجد داخل مجلد src/main/cpp أو jniLibs
+# 🛠️ [حاقن المسار الاستراتيجي الشامل]: توجيه المترجم لقراءة الحزم الحقيقية
+# تم ضبط المسار ليعود خطوة للخلف ليفهم المترجم وجود مجلد liquid/liquid.h الذي أنشأته أنت
 target_include_directories(aegis-core PRIVATE 
-    ${CMAKE_SOURCE_DIR} 
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/..
 )
 
 # [تأمين وحقن مكتبة liquid-dsp العسكرية لربط الـ Static Binary]
@@ -43,9 +43,6 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libliquid.a")
     add_library(liquid STATIC IMPORTED)
     set_target_properties(liquid PROPERTIES IMPORTED_LOCATION
         "${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libliquid.a")
-    
-    # 🛠️ [تعديل برمجائي]: تمرير مسار ملفات الرأس الخاصة بـ liquid للمترجم عند العثور على المكتبة
-    target_include_directories(aegis-core PRIVATE "${CMAKE_SOURCE_DIR}/../jniLibs/include")
     
     target_link_libraries(aegis-core liquid)
     message(STATUS "[AEGIS_BUILD] Liquid-DSP Static Library located and linked successfully.")
