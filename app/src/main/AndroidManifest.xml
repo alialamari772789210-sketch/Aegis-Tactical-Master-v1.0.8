@@ -63,8 +63,8 @@
         android:extractNativeLibs="true"
         android:hardwareAccelerated="true"
         android:label="AEGIS SOVEREIGN"
-        android:theme="@style/Theme.Material3.Dark"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Th_Aegis_Tactical_Master"
+        android:usesCleartextTraffic="true"> <!-- 🛠️ تم التعديل هنا للربط مع الثيم المظلم والمحمي المبتدئ بـ Th -->
 
         <!-- النشاط الرئيسي وواجهة القيادة والسيطرة الرادارية -->
         <activity
